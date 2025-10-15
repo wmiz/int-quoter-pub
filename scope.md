@@ -1,12 +1,14 @@
 ### Goal
 
+This is a public, production Shopify app intended for listing on the Shopify App Store.
+
 Design a Shopify app that replaces the normal checkout button with a “Get a Quote” flow for shoppers from selected regions. The flow collects contact details, captures cart contents via AJAX, creates a Draft Order, notifies the customer that the merchant will be in touch, and notifies the merchant of the request.
 
 ### Assumptions
 
 - Shopify Online Store 2.0 storefront theme, with Theme App Extensions allowed.
 - App uses Shopify Admin API (2024-07+) for Draft Orders and Shop data.
-- Regions configured by merchant (countries and/or continents, possibly by IP geolocation).
+- Regions configured by merchant (countries and/or continents, possibly by IP geolocation). Regions are stored as ISO country codes and selected via the Polaris country selector consistent with Shopify shipping settings.
 - “Get a Quote” should appear anywhere the normal checkout entry point appears (PDP, cart page, mini-cart, sticky bars).
 - Popup collects minimally: name, email, optional phone, company, notes; can be expanded later.
 - Multi-language support via app translations.
@@ -21,7 +23,6 @@ If any of these differ from your needs, I’ll adjust the plan.
     - Regions to divert (allow list / block list).
     - Where to replace the button (PDP, cart, mini-cart).
     - Popup fields and validation rules.
-    - Email templates and recipients for merchant notifications.
     - Optional auto-tagging for Draft Orders and customers.
 - **Storefront integration**
   - Theme App Extension injecting:
@@ -32,15 +33,15 @@ If any of these differ from your needs, I’ll adjust the plan.
   - App server (Remix) with secure Shopify session handling.
   - Endpoints:
     - Geolocation helper (optional; primary detection on client via IP geo API).
-    - Quote submission: validates payload, fetches cart token/lines, creates Draft Order, sends notifications, returns confirmation.
+    - Quote submission: validates payload, fetches cart token/lines, creates Draft Order, returns confirmation.
     - Configuration APIs for Admin UI.
 - **Data storage**
   - Prisma + SQLite/Postgres (prod) to store:
     - App installation records, shop settings, region rules, templates, logs.
     - Quote request logs (for support/troubleshooting).
 - **Notifications**
-  - Customer email confirming receipt and what to expect.
-  - Merchant notification (email, optional Slack/Webhook).
+  - Customer email confirming receipt and what to expect (optional, via app).
+  - Merchant notification handled via downloadable Shopify Flow templates (triggered by tags/notes on Draft Orders).
 - **Security/Compliance**
   - CSRF protection for storefront endpoint.
   - Rate limiting/abuse protection on quote endpoint.
@@ -51,15 +52,15 @@ If any of these differ from your needs, I’ll adjust the plan.
 ### 1) Merchant UX and Data Model
 
 - **Settings**
-  - Regions: support ISO country codes; optionally continents and custom lists.
+  - Regions: support ISO country codes; optionally continents and custom lists. Admin UI uses the Polaris country selector (same component/behavior as Shopify shipping settings) for a consistent merchant experience.
   - Detection strategy: IP-based geo with fallback to shipping country selection (if present).
   - Placement options: PDP, cart page, mini-cart, dynamic checkout buttons toggle.
   - Popup: configurable fields (required/optional), branding (logo, accent color), copy, translations.
-  - Notifications: merchant recipients, subject/body templates, Slack webhook URL (optional).
+  - Notifications: provide Shopify Flow templates and documentation; optional Slack webhook URL for Flow actions.
   - Draft Order: tags (e.g., “International Quote”), note template including collected info and cart summary.
 - **Data model (Prisma)**
   - Shop: `id`, `shopDomain`, `accessToken`, `scopes`, `installedAt`.
-  - Settings: `shopId`, `regionMode` (allow/block), `regions` (array of ISO codes), `placements`, `popupFields`, `translations`, `themeExtensionEnabled`, `draftOrderTags`, `merchantEmails`, `slackWebhook`, `createdAt/updatedAt`.
+  - Settings: `shopId`, `regionMode` (allow/block), `regions` (array of ISO codes), `placements`, `popupFields`, `translations`, `themeExtensionEnabled`, `draftOrderTags`, `createdAt/updatedAt`.
   - QuoteLog: `id`, `shopId`, `ip`, `country`, `cartSnapshot`, `customerEmail`, `status`, `draftOrderId`, `createdAt`.
   - EmailTemplate: `shopId`, `type` (merchant/customer), `subject`, `body`, `locale`.
 
@@ -111,9 +112,8 @@ If any of these differ from your needs, I’ll adjust the plan.
       - Include customer (create/update customer if not found by email), add note attributes with collected fields.
       - Apply tags and source name (e.g., “International Quote”).
     - Create Draft Order via Admin API.
-    - Send emails:
-      - Customer: confirmation with summary and Draft Order reference.
-      - Merchant: details with link to Draft Order in Admin.
+    - Notifications (merchant): rely on Shopify Flow templates triggered by Draft Order tags/notes; app does not send merchant emails.
+    - Optional customer email: confirmation with summary and Draft Order reference.
     - Persist `QuoteLog`.
     - Response: success, message, draft order name/ID.
 - **GET/POST `/admin/settings` (embedded)**
@@ -141,12 +141,7 @@ If any of these differ from your needs, I’ll adjust the plan.
   - Sent via app transactional provider (e.g., SendGrid/SES) or Shopify notifications API if allowed; include branding from settings.
   - Content: thank you, what to expect, timeframe, reference number.
 - **Merchant email**
-  - To configured recipients. Include:
-    - Customer contact info and notes.
-    - Country and reason for diversion.
-    - Cart summary and direct link to Draft Order in Admin.
-- **Optional Slack/Webhook**
-  - Post a message to merchant Slack channel with summary and quick link.
+  - Provided via Shopify Flow templates (download/import). Templates use Draft Order tags/notes to send email/Slack.
 
 ### 7) Admin App (Embedded)
 
@@ -154,7 +149,7 @@ If any of these differ from your needs, I’ll adjust the plan.
   - Overview dashboard: recent quote requests with filters.
   - Regions & routing: select countries/continents; allow/block mode.
   - Placement & UX: toggle locations, popup fields, copy, languages.
-  - Notifications: merchant recipients, Slack, templates.
+  - Notifications: Shopify Flow templates (download links), guidance.
   - Developer options: debug mode (log GEO results), clear cache, test mode.
 - **Permissions**
   - `write_draft_orders`, `read_products`, `read_customers`, `write_customers`, `read_orders`, `read_themes` (if needed for extension).
@@ -199,7 +194,8 @@ If any of these differ from your needs, I’ll adjust the plan.
 
 - **Alpha:** one partner store, log heavily.
 - **Beta:** add retry/backoff for geolocation and notifications; refine Draft Order mapping.
-- **Public listing (optional):** app listing content, screenshots, privacy policy.
+- **Public listing:** prepare app listing content, screenshots, demo video, pricing, privacy policy, and support contact; pass Shopify app review requirements.
+  - Include reference to Shopify Flow templates for merchant notifications in listing docs.
 
 ## Key Implementation Milestones
 
@@ -210,6 +206,7 @@ If any of these differ from your needs, I’ll adjust the plan.
 - Notifications to merchant and customer
 - Logs and dashboard
 - Hardening: rate limits, retries, privacy controls, translations
+  - Provide Shopify Flow templates for notifications and document required tags/notes
 
 ## Clarifying Questions
 
