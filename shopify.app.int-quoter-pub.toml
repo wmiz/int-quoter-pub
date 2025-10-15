@@ -16,4 +16,4 @@ scopes = "write_products"
 redirect_urls = [ "https://example.com/api/auth" ]
 
 [build]
-automatically_update_urls_on_dev = false
+automatically_update_urls_on_dev = true
