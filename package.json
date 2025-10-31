@@ -1,5 +1,5 @@
 {
-  "name": "int-quoter-pub",
+  "name": "geo-quote-pub",
   "private": true,
   "scripts": {
     "build": "remix vite:build",

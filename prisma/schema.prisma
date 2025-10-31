@@ -30,3 +30,25 @@ model Session {
   collaborator  Boolean?  @default(false)
   emailVerified Boolean?  @default(false)
 }
+
+model Shop {
+  id          String    @id @default(uuid())
+  shopDomain  String    @unique
+  installedAt DateTime  @default(now())
+  settings    Settings?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Settings {
+  id                    String   @id @default(uuid())
+  shopId                String   @unique
+  shop                  Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  regionMode            String   @default("allow") // "allow" or "block"
+  regions               String   @default("[]") // JSON array of ISO country codes
+  popupFields           String?  // JSON config for popup fields
+  draftOrderTags        String?  // Comma-separated tags
+  themeExtensionEnabled Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}

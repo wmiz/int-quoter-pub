@@ -1,0 +1,18 @@
+{
+  "geoquote": {
+    "get_quote": "Get a Quote",
+    "modal": {
+      "title": "Request a Quote",
+      "subtitle": "Please provide your information and we'll send you a quote shortly.",
+      "name_label": "Full Name",
+      "email_label": "Email",
+      "phone_label": "Phone Number",
+      "company_label": "Company",
+      "notes_label": "Additional Notes",
+      "submit": "Submit Quote Request",
+      "submitting": "Submitting...",
+      "success": "Thank you! We'll be in touch soon.",
+      "error": "Something went wrong. Please try again."
+    }
+  }
+}
