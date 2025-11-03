@@ -61,7 +61,7 @@ export const loader = async ({ request }) => {
               }
             }
           }
-        }`,
+        }`
     );
 
     // Check if response is ok before parsing
@@ -69,7 +69,7 @@ export const loader = async ({ request }) => {
       console.error(
         "Theme query failed:",
         themeResponse.status,
-        themeResponse.statusText,
+        themeResponse.statusText
       );
     } else {
       const themeData = await themeResponse.json();
@@ -81,7 +81,7 @@ export const loader = async ({ request }) => {
         // Find the main/active theme (role: MAIN)
         const activeTheme =
           themeData.data.themes.edges.find(
-            (edge) => edge.node.role === "MAIN",
+            (edge) => edge.node.role === "MAIN"
           ) || themeData.data.themes.edges[0];
 
         if (activeTheme) {
@@ -89,7 +89,7 @@ export const loader = async ({ request }) => {
           const themeGid = activeTheme.node.id;
           activeThemeId = themeGid.replace(
             "gid://shopify/OnlineStoreTheme/",
-            "",
+            ""
           );
         }
       }

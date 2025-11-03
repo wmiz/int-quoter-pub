@@ -6,6 +6,12 @@
 (function () {
   "use strict";
 
+  // Log asset load for diagnostics
+  console.info("GeoQuote: asset loaded", {
+    time: new Date().toISOString(),
+    shop: window.Shopify?.shop || "",
+  });
+
   // Configuration - will be fetched from app settings
   const GEOQUOTE_CONFIG = {
     shopDomain: window.Shopify?.shop || "",
@@ -29,6 +35,7 @@
         getCountryFromUrl() ||
         document.body.dataset.country ||
         window.geoQuoteCountry ||
+        (await detectCountryFromShopify()) ||
         (await detectCountry());
 
       if (!userCountry) {
@@ -37,7 +44,7 @@
 
       // Fetch app settings to check if country is in allow/block list
       const response = await fetch(
-        `/apps/geo-quote/settings?country=${encodeURIComponent(userCountry)}`,
+        `/apps/geo-quote/settings?country=${encodeURIComponent(userCountry)}`
       );
       if (!response.ok) {
         return false;
@@ -49,6 +56,25 @@
       console.error("GeoQuote: Error checking region:", error);
       return false; // Fail gracefully - show normal checkout
     }
+  }
+
+  // Detect user's country from Shopify storefront endpoint
+  async function detectCountryFromShopify() {
+    try {
+      const response = await fetch("/browsing_context_suggestions.json", {
+        credentials: "same-origin",
+      });
+      if (!response.ok) return null;
+
+      const data = await response.json();
+      const handle = data?.detected_values?.country?.handle;
+      if (handle && typeof handle === "string") {
+        return handle.toUpperCase();
+      }
+    } catch (error) {
+      console.error("GeoQuote: Shopify country detection failed:", error);
+    }
+    return null;
   }
 
   // Detect user's country via IP geolocation (fallback)

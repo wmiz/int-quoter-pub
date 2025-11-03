@@ -51,7 +51,7 @@ export default function Notifications() {
               Flow to receive email notifications when customers submit quote
               requests.
             </Text>
-            <Button variant="primary" onClick={handleDownload}>
+            <Button variant="primary" size="large" onClick={handleDownload}>
               Download Flow File
             </Button>
           </BlockStack>
