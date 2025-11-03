@@ -10,7 +10,7 @@ import {
   InlineStack,
   Box,
 } from "@shopify/polaris";
-import { TitleBar } from "@shopify/app-bridge-react";
+// Using App Bridge Web Components for TitleBar
 import { authenticate } from "../shopify.server";
 import { json } from "@remix-run/node";
 
@@ -98,10 +98,10 @@ export default function TestQuoteFlow() {
 
   return (
     <Page>
-      <TitleBar title="Testing" />
-      <Box paddingBlockStart="1200" paddingBlockEnd="1200">
+      <ui-title-bar title="Testing"></ui-title-bar>
+      <Box>
         <BlockStack align="center" gap="400">
-          <Box maxWidth="800px" width="100%">
+          <Box width="100%">
             <Card>
               <BlockStack gap="400">
                 <Text as="h2" variant="headingMd">

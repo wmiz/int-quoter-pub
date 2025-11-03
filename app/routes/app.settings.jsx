@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useLoaderData, useFetcher } from "@remix-run/react";
 import {
   Page,
@@ -13,7 +13,7 @@ import {
   Banner,
   Box,
 } from "@shopify/polaris";
-import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
+// App Bridge Web Components are loaded globally via script in root; use <ui-title-bar> and <ui-toast>
 import { authenticate } from "../shopify.server";
 import { json } from "@remix-run/node";
 import prisma from "../db.server";
@@ -109,14 +109,14 @@ export const action = async ({ request }) => {
 export default function Settings() {
   const { settings } = useLoaderData();
   const fetcher = useFetcher();
-  const shopify = useAppBridge();
+  const toastRef = useRef(null);
 
   const [regionMode, setRegionMode] = useState(settings?.regionMode || "allow");
   const [regions, setRegions] = useState(
-    settings?.regions ? JSON.parse(settings.regions) : [],
+    settings?.regions ? JSON.parse(settings.regions) : []
   );
   const [regionsText, setRegionsText] = useState(
-    settings?.regions ? JSON.parse(settings.regions).join(", ") : "",
+    settings?.regions ? JSON.parse(settings.regions).join(", ") : ""
   );
   const [popupFields, setPopupFields] = useState(() => {
     const defaultFields = {
@@ -135,10 +135,10 @@ export default function Settings() {
     return defaultFields;
   });
   const [draftOrderTags, setDraftOrderTags] = useState(
-    settings?.draftOrderTags || "",
+    settings?.draftOrderTags || ""
   );
   const [themeExtensionEnabled, setThemeExtensionEnabled] = useState(
-    settings?.themeExtensionEnabled || false,
+    settings?.themeExtensionEnabled || false
   );
 
   const isLoading =
@@ -146,9 +146,14 @@ export default function Settings() {
 
   useEffect(() => {
     if (fetcher.data?.success) {
-      shopify.toast.show("Settings saved successfully");
+      if (toastRef.current) {
+        toastRef.current.setAttribute("content", "Settings saved successfully");
+        if (typeof toastRef.current.show === "function") {
+          toastRef.current.show();
+        }
+      }
     }
-  }, [fetcher.data, shopify]);
+  }, [fetcher.data]);
 
   const handleRegionModeChange = useCallback((value) => {
     setRegionMode(value);
@@ -199,6 +204,7 @@ export default function Settings() {
     formData.append("themeExtensionEnabled", themeExtensionEnabled.toString());
 
     fetcher.submit(formData, { method: "POST" });
+    shopify.toast.show("Settings saved successfully");
   }, [
     regionMode,
     regions,
@@ -214,177 +220,192 @@ export default function Settings() {
   ];
 
   return (
-    <Page
-      heading="Settings"
-      primaryAction={{
-        content: "Save Settings",
-        onAction: handleSave,
-        loading: isLoading,
-      }}
-    >
-      <TitleBar title="Settings"></TitleBar>
-      <Layout>
-        <Layout.Section>
-          <BlockStack gap="500">
+    <s-page heading="Settings">
+      <s-button slot="primary-action" onClick={handleSave}>
+        Save Settings
+      </s-button>
+      <ui-toast ref={toastRef}></ui-toast>
+
+      <Box paddingBlockStart="600" paddingBlockEnd="400">
+        <BlockStack align="center" gap="400">
+          <Box style={{ margin: "0 auto" }}>
             <BlockStack gap="500">
-              <Card>
-                <BlockStack gap="400">
-                  <Text as="h2" variant="headingMd">
-                    Regions & Routing
-                  </Text>
-                  <Text as="p" variant="bodyMd" tone="subdued">
-                    Configure which countries should be redirected to the quote
-                    flow. Uses ISO country codes consistent with Shopify
-                    shipping settings.
-                  </Text>
-                  <Select
-                    label="Region mode"
-                    options={regionModeOptions}
-                    value={regionMode}
-                    onChange={handleRegionModeChange}
-                  />
-                  <TextField
-                    label="ISO Country Codes"
-                    value={regionsText}
-                    onChange={handleRegionsTextChange}
-                    placeholder="US, CA, GB, AU"
-                    helpText="Enter comma-separated ISO country codes (e.g., US, CA, GB)"
-                    multiline={2}
-                  />
-                </BlockStack>
-              </Card>
-
-              <Card>
-                <BlockStack gap="400">
-                  <Text as="h2" variant="headingMd">
-                    Form Fields
-                  </Text>
-                  <Text as="p" variant="bodyMd" tone="subdued">
-                    Configure which optional fields appear in the quote request
-                    popup. Name and email are always required.
-                  </Text>
-                  <BlockStack gap="300">
-                    <InlineStack gap="400" align="space-between">
-                      <BlockStack gap="300">
-                        <Text as="span" variant="bodyMd" fontWeight="semibold">
-                          Phone
-                        </Text>
-                        <Text as="span" variant="bodyMd" tone="subdued">
-                          Customer's phone number
-                        </Text>
-                      </BlockStack>
-                      <InlineStack gap="300">
-                        <Checkbox
-                          label="Enabled"
-                          checked={popupFields.phone?.enabled || false}
-                          onChange={(value) =>
-                            handlePopupFieldChange("phone", value, false)
-                          }
-                        />
-                        <Checkbox
-                          label="Required"
-                          checked={popupFields.phone?.required || false}
-                          onChange={(value) =>
-                            handlePopupFieldChange("phone", undefined, value)
-                          }
-                          disabled={!popupFields.phone?.enabled}
-                        />
-                      </InlineStack>
-                    </InlineStack>
-                    <InlineStack gap="400" align="space-between">
-                      <BlockStack gap="300">
-                        <Text as="span" variant="bodyMd" fontWeight="semibold">
-                          Company
-                        </Text>
-                        <Text as="span" variant="bodyMd" tone="subdued">
-                          Company name (optional)
-                        </Text>
-                      </BlockStack>
-                      <InlineStack gap="300">
-                        <Checkbox
-                          label="Enabled"
-                          checked={popupFields.company?.enabled || false}
-                          onChange={(value) =>
-                            handlePopupFieldChange("company", value, false)
-                          }
-                        />
-                        <Checkbox
-                          label="Required"
-                          checked={popupFields.company?.required || false}
-                          onChange={(value) =>
-                            handlePopupFieldChange("company", undefined, value)
-                          }
-                          disabled={!popupFields.company?.enabled}
-                        />
-                      </InlineStack>
-                    </InlineStack>
-                    <InlineStack gap="400" align="space-between">
-                      <BlockStack gap="300">
-                        <Text as="span" variant="bodyMd" fontWeight="semibold">
-                          Notes
-                        </Text>
-                        <Text as="span" variant="bodyMd" tone="subdued">
-                          Additional message from customer
-                        </Text>
-                      </BlockStack>
-                      <InlineStack gap="300">
-                        <Checkbox
-                          label="Enabled"
-                          checked={popupFields.notes?.enabled || false}
-                          onChange={(value) =>
-                            handlePopupFieldChange("notes", value, false)
-                          }
-                        />
-                      </InlineStack>
-                    </InlineStack>
+              <BlockStack gap="500">
+                <Card>
+                  <BlockStack gap="400">
+                    <Text as="h2" variant="headingMd">
+                      Regions & Routing
+                    </Text>
+                    <Text as="p" variant="bodyMd" tone="subdued">
+                      Configure which countries should be redirected to the
+                      quote flow. Uses ISO country codes consistent with Shopify
+                      shipping settings.
+                    </Text>
+                    <Select
+                      label="Region mode"
+                      options={regionModeOptions}
+                      value={regionMode}
+                      onChange={handleRegionModeChange}
+                    />
+                    <TextField
+                      label="ISO Country Codes"
+                      value={regionsText}
+                      onChange={handleRegionsTextChange}
+                      placeholder="US, CA, GB, AU"
+                      helpText="Enter comma-separated ISO country codes (e.g., US, CA, GB)"
+                      multiline={2}
+                    />
                   </BlockStack>
-                </BlockStack>
-              </Card>
+                </Card>
 
-              <Card>
-                <BlockStack gap="400">
-                  <Text as="h2" variant="headingMd">
-                    Draft Orders
-                  </Text>
-                  <Text as="p" variant="bodyMd" tone="subdued">
-                    Tags to apply to draft orders created from quote requests.
-                  </Text>
-                  <TextField
-                    label="Additional Tags"
-                    value={draftOrderTags}
-                    onChange={setDraftOrderTags}
-                    placeholder="custom-order, international"
-                    helpText="Enter comma-separated tags"
-                  />
-                </BlockStack>
-              </Card>
+                <Card>
+                  <BlockStack gap="400">
+                    <Text as="h2" variant="headingMd">
+                      Form Fields
+                    </Text>
+                    <Text as="p" variant="bodyMd" tone="subdued">
+                      Configure which optional fields appear in the quote
+                      request popup. Name and email are always required.
+                    </Text>
+                    <BlockStack gap="300">
+                      <InlineStack gap="400" align="space-between">
+                        <BlockStack gap="300">
+                          <Text
+                            as="span"
+                            variant="bodyMd"
+                            fontWeight="semibold"
+                          >
+                            Phone
+                          </Text>
+                          <Text as="span" variant="bodyMd" tone="subdued">
+                            Customer's phone number
+                          </Text>
+                        </BlockStack>
+                        <InlineStack gap="300">
+                          <Checkbox
+                            label="Enabled"
+                            checked={popupFields.phone?.enabled || false}
+                            onChange={(value) =>
+                              handlePopupFieldChange("phone", value, false)
+                            }
+                          />
+                          <Checkbox
+                            label="Required"
+                            checked={popupFields.phone?.required || false}
+                            onChange={(value) =>
+                              handlePopupFieldChange("phone", undefined, value)
+                            }
+                            disabled={!popupFields.phone?.enabled}
+                          />
+                        </InlineStack>
+                      </InlineStack>
+                      <InlineStack gap="400" align="space-between">
+                        <BlockStack gap="300">
+                          <Text
+                            as="span"
+                            variant="bodyMd"
+                            fontWeight="semibold"
+                          >
+                            Company
+                          </Text>
+                          <Text as="span" variant="bodyMd" tone="subdued">
+                            Company name (optional)
+                          </Text>
+                        </BlockStack>
+                        <InlineStack gap="300">
+                          <Checkbox
+                            label="Enabled"
+                            checked={popupFields.company?.enabled || false}
+                            onChange={(value) =>
+                              handlePopupFieldChange("company", value, false)
+                            }
+                          />
+                          <Checkbox
+                            label="Required"
+                            checked={popupFields.company?.required || false}
+                            onChange={(value) =>
+                              handlePopupFieldChange(
+                                "company",
+                                undefined,
+                                value
+                              )
+                            }
+                            disabled={!popupFields.company?.enabled}
+                          />
+                        </InlineStack>
+                      </InlineStack>
+                      <InlineStack gap="400" align="space-between">
+                        <BlockStack gap="300">
+                          <Text
+                            as="span"
+                            variant="bodyMd"
+                            fontWeight="semibold"
+                          >
+                            Notes
+                          </Text>
+                          <Text as="span" variant="bodyMd" tone="subdued">
+                            Additional message from customer
+                          </Text>
+                        </BlockStack>
+                        <InlineStack gap="300">
+                          <Checkbox
+                            label="Enabled"
+                            checked={popupFields.notes?.enabled || false}
+                            onChange={(value) =>
+                              handlePopupFieldChange("notes", value, false)
+                            }
+                          />
+                        </InlineStack>
+                      </InlineStack>
+                    </BlockStack>
+                  </BlockStack>
+                </Card>
 
-              <Card>
-                <BlockStack gap="400">
-                  <Text as="h2" variant="headingMd">
-                    Theme Extension
-                  </Text>
-                  <Text as="p" variant="bodyMd" tone="subdued">
-                    Track whether the theme app extension has been installed and
-                    configured in your theme.
-                  </Text>
-                  <Checkbox
-                    label="Theme extension enabled"
-                    checked={themeExtensionEnabled}
-                    onChange={setThemeExtensionEnabled}
-                  />
-                </BlockStack>
-              </Card>
+                <Card>
+                  <BlockStack gap="400">
+                    <Text as="h2" variant="headingMd">
+                      Draft Orders
+                    </Text>
+                    <Text as="p" variant="bodyMd" tone="subdued">
+                      Tags to apply to draft orders created from quote requests.
+                    </Text>
+                    <TextField
+                      label="Additional Tags"
+                      value={draftOrderTags}
+                      onChange={setDraftOrderTags}
+                      placeholder="custom-order, international"
+                      helpText="Enter comma-separated tags"
+                    />
+                  </BlockStack>
+                </Card>
 
-              {fetcher.data?.error && (
-                <Banner status="critical" onDismiss={() => {}}>
-                  {fetcher.data.error}
-                </Banner>
-              )}
+                <Card>
+                  <BlockStack gap="400">
+                    <Text as="h2" variant="headingMd">
+                      Theme Extension
+                    </Text>
+                    <Text as="p" variant="bodyMd" tone="subdued">
+                      Track whether the theme app extension has been installed
+                      and configured in your theme.
+                    </Text>
+                    <Checkbox
+                      label="Theme extension enabled"
+                      checked={themeExtensionEnabled}
+                      onChange={setThemeExtensionEnabled}
+                    />
+                  </BlockStack>
+                </Card>
+
+                {fetcher.data?.error && (
+                  <Banner status="critical" onDismiss={() => {}}>
+                    {fetcher.data.error}
+                  </Banner>
+                )}
+              </BlockStack>
             </BlockStack>
-          </BlockStack>
-        </Layout.Section>
-      </Layout>
-    </Page>
+          </Box>
+        </BlockStack>
+      </Box>
+    </s-page>
   );
 }

@@ -1,0 +1,46 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json.lock
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.*.local
+!.env.example
+
+# Build artifacts (Remix/Vite)
+build/
+public/build/
+dist/
+.vite/
+.vite-inspect/
+.cache/
+
+# Coverage / testing
+coverage/
+.nyc_output/
+
+# TypeScript
+*.tsbuildinfo
+
+# Linters / tooling
+.eslintcache
+.stylelintcache
+
+# Prisma
+prisma/dev.sqlite
+prisma/*.db
+prisma/*.sqlite
+prisma/migrations/dev.db-journal
+*.db-journal
+
+# Editors
+.vscode/
+*.swp
