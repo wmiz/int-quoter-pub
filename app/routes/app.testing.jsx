@@ -2,13 +2,13 @@ import { useState, useCallback } from "react";
 import { useLoaderData } from "@remix-run/react";
 import {
   Page,
-  Layout,
   Card,
   BlockStack,
   Text,
   Select,
   Button,
   InlineStack,
+  Box,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
@@ -29,38 +29,50 @@ export const loader = async ({ request }) => {
   });
 };
 
+// Helper function to convert ISO country code to emoji flag
+const getCountryFlag = (countryCode) => {
+  if (!countryCode) return "";
+  // Convert country code to regional indicator symbols
+  // Regional Indicator Symbol Letter A starts at 0x1F1E6
+  const codePoints = countryCode
+    .toUpperCase()
+    .split("")
+    .map((char) => 0x1f1e6 + (char.charCodeAt(0) - 65));
+  return String.fromCodePoint(...codePoints);
+};
+
 // Common countries list (ISO country codes)
 const COUNTRIES = [
   { label: "Select a country...", value: "" },
-  { label: "United States", value: "US" },
-  { label: "Canada", value: "CA" },
-  { label: "United Kingdom", value: "GB" },
-  { label: "Australia", value: "AU" },
-  { label: "Germany", value: "DE" },
-  { label: "France", value: "FR" },
-  { label: "Italy", value: "IT" },
-  { label: "Spain", value: "ES" },
-  { label: "Netherlands", value: "NL" },
-  { label: "Belgium", value: "BE" },
-  { label: "Switzerland", value: "CH" },
-  { label: "Austria", value: "AT" },
-  { label: "Sweden", value: "SE" },
-  { label: "Norway", value: "NO" },
-  { label: "Denmark", value: "DK" },
-  { label: "Finland", value: "FI" },
-  { label: "Poland", value: "PL" },
-  { label: "Portugal", value: "PT" },
-  { label: "Ireland", value: "IE" },
-  { label: "Japan", value: "JP" },
-  { label: "South Korea", value: "KR" },
-  { label: "China", value: "CN" },
-  { label: "India", value: "IN" },
-  { label: "Brazil", value: "BR" },
-  { label: "Mexico", value: "MX" },
-  { label: "Argentina", value: "AR" },
-  { label: "New Zealand", value: "NZ" },
-  { label: "Singapore", value: "SG" },
-  { label: "Hong Kong", value: "HK" },
+  { label: `${getCountryFlag("US")} United States`, value: "US" },
+  { label: `${getCountryFlag("CA")} Canada`, value: "CA" },
+  { label: `${getCountryFlag("GB")} United Kingdom`, value: "GB" },
+  { label: `${getCountryFlag("AU")} Australia`, value: "AU" },
+  { label: `${getCountryFlag("DE")} Germany`, value: "DE" },
+  { label: `${getCountryFlag("FR")} France`, value: "FR" },
+  { label: `${getCountryFlag("IT")} Italy`, value: "IT" },
+  { label: `${getCountryFlag("ES")} Spain`, value: "ES" },
+  { label: `${getCountryFlag("NL")} Netherlands`, value: "NL" },
+  { label: `${getCountryFlag("BE")} Belgium`, value: "BE" },
+  { label: `${getCountryFlag("CH")} Switzerland`, value: "CH" },
+  { label: `${getCountryFlag("AT")} Austria`, value: "AT" },
+  { label: `${getCountryFlag("SE")} Sweden`, value: "SE" },
+  { label: `${getCountryFlag("NO")} Norway`, value: "NO" },
+  { label: `${getCountryFlag("DK")} Denmark`, value: "DK" },
+  { label: `${getCountryFlag("FI")} Finland`, value: "FI" },
+  { label: `${getCountryFlag("PL")} Poland`, value: "PL" },
+  { label: `${getCountryFlag("PT")} Portugal`, value: "PT" },
+  { label: `${getCountryFlag("IE")} Ireland`, value: "IE" },
+  { label: `${getCountryFlag("JP")} Japan`, value: "JP" },
+  { label: `${getCountryFlag("KR")} South Korea`, value: "KR" },
+  { label: `${getCountryFlag("CN")} China`, value: "CN" },
+  { label: `${getCountryFlag("IN")} India`, value: "IN" },
+  { label: `${getCountryFlag("BR")} Brazil`, value: "BR" },
+  { label: `${getCountryFlag("MX")} Mexico`, value: "MX" },
+  { label: `${getCountryFlag("AR")} Argentina`, value: "AR" },
+  { label: `${getCountryFlag("NZ")} New Zealand`, value: "NZ" },
+  { label: `${getCountryFlag("SG")} Singapore`, value: "SG" },
+  { label: `${getCountryFlag("HK")} Hong Kong`, value: "HK" },
 ];
 
 export default function TestQuoteFlow() {
@@ -87,44 +99,46 @@ export default function TestQuoteFlow() {
   return (
     <Page>
       <TitleBar title="Testing" />
-      <Layout>
-        <Layout.Section>
-          <Card>
-            <BlockStack gap="400">
-              <Text as="h2" variant="headingMd">
-                Testing by Country
-              </Text>
-              <Text as="p" variant="bodyMd" tone="subdued">
-                Select a country to simulate viewing your storefront from that
-                location. The storefront will open in a new window with the
-                country parameter set.
-              </Text>
-              <BlockStack gap="300">
-                <Select
-                  label="Country"
-                  options={COUNTRIES}
-                  value={selectedCountry}
-                  onChange={handleCountryChange}
-                />
-                <InlineStack gap="300">
-                  <Button
-                    primary
-                    onClick={handleOpenStorefront}
-                    disabled={!selectedCountry}
-                  >
-                    Open Storefront
-                  </Button>
-                  <Text as="span" variant="bodyMd" tone="subdued">
-                    {selectedCountry
-                      ? `Will open: ${storefrontUrl}?country=${selectedCountry}`
-                      : "Select a country to continue"}
-                  </Text>
-                </InlineStack>
+      <Box paddingBlockStart="1200" paddingBlockEnd="1200">
+        <BlockStack align="center" gap="400">
+          <Box maxWidth="800px" width="100%">
+            <Card>
+              <BlockStack gap="400">
+                <Text as="h2" variant="headingMd">
+                  Testing by Country
+                </Text>
+                <Text as="p" variant="bodyMd" tone="subdued">
+                  Select a country to simulate viewing your storefront from that
+                  location. The storefront will open in a new window with the
+                  country parameter set.
+                </Text>
+                <BlockStack gap="300">
+                  <Select
+                    label="Country"
+                    options={COUNTRIES}
+                    value={selectedCountry}
+                    onChange={handleCountryChange}
+                  />
+                  <InlineStack gap="300" blockAlign="center">
+                    <Button
+                      variant="primary"
+                      onClick={handleOpenStorefront}
+                      disabled={!selectedCountry}
+                    >
+                      Open Storefront
+                    </Button>
+                    <Text as="span" variant="bodyMd" tone="subdued">
+                      {selectedCountry
+                        ? `Will open: ${storefrontUrl}?country=${selectedCountry}`
+                        : "Select a country to continue"}
+                    </Text>
+                  </InlineStack>
+                </BlockStack>
               </BlockStack>
-            </BlockStack>
-          </Card>
-        </Layout.Section>
-      </Layout>
+            </Card>
+          </Box>
+        </BlockStack>
+      </Box>
     </Page>
   );
 }

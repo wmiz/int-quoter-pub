@@ -1,4 +1,4 @@
-import { useLoaderData } from "@remix-run/react";
+import { useLoaderData, useSearchParams } from "@remix-run/react";
 import {
   Page,
   Layout,
@@ -12,7 +12,9 @@ import {
   Badge,
   DataTable,
   EmptyState,
+  Icon,
 } from "@shopify/polaris";
+import { CheckIcon } from "@shopify/polaris-icons";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import { json } from "@remix-run/node";
@@ -21,6 +23,10 @@ import prisma from "../db.server";
 export const loader = async ({ request }) => {
   const { admin, session } = await authenticate.admin(request);
   const shopDomain = session.shop;
+
+  // Get time period from URL search params (default to "30" for last 30 days)
+  const url = new URL(request.url);
+  const timePeriod = url.searchParams.get("period") || "30";
 
   // Get shop settings to determine setup completion
   let shop = await prisma.shop.findUnique({
@@ -92,12 +98,28 @@ export const loader = async ({ request }) => {
     console.error("Failed to fetch active theme:", error);
   }
 
+  // Calculate date range based on selected time period
+  const now = new Date();
+  const startDate = new Date();
+
+  if (timePeriod === "1") {
+    // Today
+    startDate.setHours(0, 0, 0, 0);
+  } else if (timePeriod === "7") {
+    // Last 7 days
+    startDate.setDate(startDate.getDate() - 7);
+  } else {
+    // Last 30 days (default)
+    startDate.setDate(startDate.getDate() - 30);
+  }
+
   // TODO: Fetch actual quote requests from draft orders
+  // Filter by date range: created_at >= startDate AND created_at <= now
   // For now, using placeholder data
   const quoteStats = {
-    today: 0, // Placeholder
-    week: 0, // Placeholder
-    month: 0, // Placeholder
+    totalRequests: 0, // Placeholder - total number of quote requests in selected period
+    totalRevenue: 0, // Placeholder - total revenue from quote requests in selected period
+    timePeriod, // Include selected period in response
   };
 
   const recentQuotes = []; // Placeholder - will be populated from draft orders
@@ -114,6 +136,17 @@ export const loader = async ({ request }) => {
 export default function Index() {
   const { showOnboarding, activeThemeId, settings, quoteStats, recentQuotes } =
     useLoaderData();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Get current time period from search params or default to "30"
+  const currentPeriod = searchParams.get("period") || "30";
+
+  // Handle time period change
+  const handlePeriodChange = (period) => {
+    const newSearchParams = new URLSearchParams(searchParams);
+    newSearchParams.set("period", period);
+    setSearchParams(newSearchParams);
+  };
 
   // Determine setup completion status
   const hasRegions =
@@ -213,7 +246,7 @@ export default function Index() {
                     Quote" button with an accessible modal.
                   </List.Item>
                 </List>
-                <InlineStack gap="300">
+                <InlineStack gap="300" blockAlign="center">
                   {activeThemeId ? (
                     <Button
                       url={`shopify:admin/themes/${activeThemeId}/editor?context=apps`}
@@ -254,7 +287,7 @@ export default function Index() {
                     preferred provider.
                   </List.Item>
                 </List>
-                <InlineStack gap="300">
+                <InlineStack gap="300" blockAlign="center">
                   <Button>Download flow templates</Button>
                   <Link
                     url="https://shopify.dev/docs/apps/flow"
@@ -294,7 +327,7 @@ export default function Index() {
           <Layout.Section>
             <BlockStack gap="400">
               <Card>
-                <BlockStack gap="200">
+                <BlockStack gap="300">
                   <Text as="h3" variant="headingMd">
                     Docs & references
                   </Text>
@@ -333,53 +366,79 @@ export default function Index() {
           <Layout.Section>
             <BlockStack gap="500">
               {/* Statistics Cards */}
-              <Layout>
-                <Layout.Section variant="oneThird">
-                  <Card>
-                    <BlockStack gap="200">
-                      <Text as="h2" variant="headingMd">
+              <Card>
+                <BlockStack gap="400">
+                  <InlineStack align="space-between" blockAlign="center">
+                    <Text as="h2" variant="headingMd">
+                      Statistics
+                    </Text>
+                    <InlineStack gap="300">
+                      <Button
+                        size="slim"
+                        variant={
+                          currentPeriod === "1" ? "primary" : "secondary"
+                        }
+                        onClick={() => handlePeriodChange("1")}
+                      >
                         Today
-                      </Text>
-                      <Text as="h1" variant="heading2xl">
-                        {quoteStats.today}
-                      </Text>
-                      <Text as="p" variant="bodyMd" tone="subdued">
-                        Quote requests
-                      </Text>
-                    </BlockStack>
-                  </Card>
-                </Layout.Section>
-                <Layout.Section variant="oneThird">
-                  <Card>
-                    <BlockStack gap="200">
-                      <Text as="h2" variant="headingMd">
-                        This Week
-                      </Text>
-                      <Text as="h1" variant="heading2xl">
-                        {quoteStats.week}
-                      </Text>
-                      <Text as="p" variant="bodyMd" tone="subdued">
-                        Quote requests
-                      </Text>
-                    </BlockStack>
-                  </Card>
-                </Layout.Section>
-                <Layout.Section variant="oneThird">
-                  <Card>
-                    <BlockStack gap="200">
-                      <Text as="h2" variant="headingMd">
-                        This Month
-                      </Text>
-                      <Text as="h1" variant="heading2xl">
-                        {quoteStats.month}
-                      </Text>
-                      <Text as="p" variant="bodyMd" tone="subdued">
-                        Quote requests
-                      </Text>
-                    </BlockStack>
-                  </Card>
-                </Layout.Section>
-              </Layout>
+                      </Button>
+                      <Button
+                        size="slim"
+                        variant={
+                          currentPeriod === "7" ? "primary" : "secondary"
+                        }
+                        onClick={() => handlePeriodChange("7")}
+                      >
+                        Last 7 days
+                      </Button>
+                      <Button
+                        size="slim"
+                        variant={
+                          currentPeriod === "30" ? "primary" : "secondary"
+                        }
+                        onClick={() => handlePeriodChange("30")}
+                      >
+                        Last 30 days
+                      </Button>
+                    </InlineStack>
+                  </InlineStack>
+                  <Layout>
+                    <Layout.Section variant="oneHalf">
+                      <Card>
+                        <BlockStack gap="300">
+                          <Text as="h2" variant="headingMd">
+                            Quote Requests
+                          </Text>
+                          <Text as="h1" variant="heading2xl">
+                            {quoteStats.totalRequests}
+                          </Text>
+                          <Text as="p" variant="bodyMd" tone="subdued">
+                            Total requests
+                          </Text>
+                        </BlockStack>
+                      </Card>
+                    </Layout.Section>
+                    <Layout.Section variant="oneHalf">
+                      <Card>
+                        <BlockStack gap="300">
+                          <Text as="h2" variant="headingMd">
+                            Total Revenue
+                          </Text>
+                          <Text as="h1" variant="heading2xl">
+                            {new Intl.NumberFormat("en-US", {
+                              style: "currency",
+                              currency: "USD",
+                            }).format(quoteStats.totalRevenue / 100)}
+                          </Text>
+                          <Text as="p" variant="bodyMd" tone="subdued">
+                            From quote requests
+                          </Text>
+                        </BlockStack>
+                      </Card>
+                    </Layout.Section>
+                  </Layout>
+                </BlockStack>
+              </Card>
 
               {/* Recent Quote Requests */}
               <Card>
@@ -420,6 +479,10 @@ export default function Index() {
                     <EmptyState
                       heading="No quote requests yet"
                       image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+                      action={{
+                        content: "Test the storefront",
+                        url: "/app/testing",
+                      }}
                     >
                       <Text as="p" variant="bodyMd" tone="subdued">
                         Quote requests will appear here once customers start
@@ -451,9 +514,9 @@ export default function Index() {
                       >
                         <InlineStack gap="300" blockAlign="center">
                           {item.completed ? (
-                            <Badge status="success">✓</Badge>
+                            <Icon source={CheckIcon} tone="success" />
                           ) : (
-                            <Badge status="attention">○</Badge>
+                            <Badge status="attention" />
                           )}
                           <Text
                             as="span"
@@ -471,43 +534,6 @@ export default function Index() {
                       </InlineStack>
                     ))}
                   </BlockStack>
-                </BlockStack>
-              </Card>
-
-              {/* Quick Actions */}
-              <Card>
-                <BlockStack gap="400">
-                  <Text as="h2" variant="headingMd">
-                    Quick Actions
-                  </Text>
-                  <InlineStack gap="200" wrap>
-                    <Button url="/app/quotes" variant="secondary">
-                      View all quote requests
-                    </Button>
-                    <Button url="/app/testing" variant="secondary">
-                      Testing
-                    </Button>
-                    <Button url="/app/settings" variant="secondary">
-                      Configure settings
-                    </Button>
-                    {activeThemeId ? (
-                      <Button
-                        url={`shopify:admin/themes/${activeThemeId}/editor?context=apps`}
-                        target="_blank"
-                        variant="secondary"
-                      >
-                        Enable app extension
-                      </Button>
-                    ) : (
-                      <Button
-                        url="/admin/themes"
-                        target="_blank"
-                        variant="secondary"
-                      >
-                        Enable app extension
-                      </Button>
-                    )}
-                  </InlineStack>
                 </BlockStack>
               </Card>
 
