@@ -90,7 +90,7 @@ export default function TestQuoteFlow() {
 
     // Construct URL with country parameter
     const url = new URL(storefrontUrl);
-    url.searchParams.set("country", selectedCountry);
+    url.searchParams.set("gq_country", selectedCountry);
 
     // Open in new window
     window.open(url.toString(), "_blank", "noopener,noreferrer");

@@ -48,7 +48,6 @@ model Settings {
   regions               String   @default("[]") // JSON array of ISO country codes
   popupFields           String?  // JSON config for popup fields
   draftOrderTags        String?  // Comma-separated tags
-  themeExtensionEnabled Boolean  @default(false)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 }

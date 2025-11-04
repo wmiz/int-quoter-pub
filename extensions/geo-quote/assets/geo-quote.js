@@ -22,7 +22,7 @@
   // Get country from URL parameter (for testing)
   function getCountryFromUrl() {
     const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get("country") || null;
+    return urlParams.get("gq_country") || null;
   }
 
   // Check if user's country matches configured regions

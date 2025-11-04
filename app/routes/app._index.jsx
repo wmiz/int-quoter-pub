@@ -13,6 +13,7 @@ import {
   DataTable,
   EmptyState,
   Icon,
+  Box,
 } from "@shopify/polaris";
 import { CheckIcon } from "@shopify/polaris-icons";
 import { TitleBar } from "@shopify/app-bridge-react";
@@ -40,15 +41,14 @@ export const loader = async ({ request }) => {
   }
 
   // Determine if onboarding should be shown
-  // Show onboarding if regions aren't configured OR theme extension isn't enabled
+  // Show onboarding if regions aren't configured
   const hasConfiguredRegions =
     settings?.regions && JSON.parse(settings.regions || "[]").length > 0;
-  const hasThemeExtension = settings?.themeExtensionEnabled || false;
-  const showOnboarding =
-    !settings || !hasConfiguredRegions || !hasThemeExtension;
+  const showOnboarding = !settings || !hasConfiguredRegions;
 
   // Get the active theme ID for theme customizer redirect
   let activeThemeId = null;
+  let appEmbedActive = false;
   try {
     const themeResponse = await admin.graphql(
       `#graphql
@@ -91,6 +91,57 @@ export const loader = async ({ request }) => {
             "gid://shopify/OnlineStoreTheme/",
             ""
           );
+
+          // Fetch settings_data.json to check if app embed is active
+          try {
+            // Use REST API to fetch the asset file
+            // API version 2025-01 matches the January25 GraphQL API version
+            const response = await fetch(
+              `https://${shopDomain}/admin/api/2025-01/themes/${activeThemeId}/assets.json?asset[key]=config/settings_data.json`,
+              {
+                headers: {
+                  "X-Shopify-Access-Token": session.accessToken,
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+
+            if (response.ok) {
+              const assetData = await response.json();
+              if (assetData.asset && assetData.asset.value) {
+                const settingsJson = JSON.parse(assetData.asset.value);
+
+                // Check if app embed is active according to Shopify documentation:
+                // App embed blocks appear in settings_data.json.current.blocks
+                // Block type format: "shopify://apps/<app_name>/blocks/<block_name>/<unique_ID>"
+                // A block is active if disabled !== true
+                const current = settingsJson.current || {};
+                const blocks = current.blocks || {};
+
+                for (const [blockId, block] of Object.entries(blocks)) {
+                  // Check if block type matches our app extension
+                  // Format: shopify://apps/geo-quote/blocks/<block_name>/<unique_ID>
+                  if (
+                    block.type &&
+                    typeof block.type === "string" &&
+                    block.type.includes("shopify://apps/") &&
+                    block.type.includes("/blocks/") &&
+                    block.type.includes("geo-quote")
+                  ) {
+                    // Check if block is enabled (disabled !== true)
+                    // Blocks remain in settings_data.json even when disabled,
+                    // so we must check the disabled property
+                    if (block.disabled !== true) {
+                      appEmbedActive = true;
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+          } catch (settingsError) {
+            console.error("Failed to fetch settings_data.json:", settingsError);
+          }
         }
       }
     }
@@ -130,12 +181,19 @@ export const loader = async ({ request }) => {
     settings,
     quoteStats,
     recentQuotes,
+    appEmbedActive,
   });
 };
 
 export default function Index() {
-  const { showOnboarding, activeThemeId, settings, quoteStats, recentQuotes } =
-    useLoaderData();
+  const {
+    showOnboarding,
+    activeThemeId,
+    settings,
+    quoteStats,
+    recentQuotes,
+    appEmbedActive,
+  } = useLoaderData();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Get current time period from search params or default to "30"
@@ -151,30 +209,8 @@ export default function Index() {
   // Determine setup completion status
   const hasRegions =
     settings?.regions && JSON.parse(settings.regions || "[]").length > 0;
-  const hasThemeExtension = settings?.themeExtensionEnabled || false;
-  const hasDraftOrderTags = settings?.draftOrderTags?.trim().length > 0;
 
-  const setupComplete = hasRegions && hasThemeExtension;
-
-  const setupItems = [
-    {
-      label: "Configure regions & routing",
-      completed: hasRegions,
-      actionUrl: "/app/settings",
-    },
-    {
-      label: "Enable theme app extension",
-      completed: hasThemeExtension,
-      actionUrl: activeThemeId
-        ? `shopify:admin/themes/${activeThemeId}/editor?context=apps`
-        : "/admin/themes",
-    },
-    {
-      label: "Set draft order tags (optional)",
-      completed: hasDraftOrderTags,
-      actionUrl: "/app/settings",
-    },
-  ];
+  const setupComplete = hasRegions && appEmbedActive;
 
   return (
     <Page>
@@ -230,10 +266,14 @@ export default function Index() {
                   <Text as="h3" variant="headingMd">
                     2) Theme app extension
                   </Text>
-                  {settings?.themeExtensionEnabled ? (
-                    <Badge status="success">Extension enabled</Badge>
+                  {appEmbedActive !== undefined ? (
+                    appEmbedActive ? (
+                      <Badge status="success">Active in theme</Badge>
+                    ) : (
+                      <Badge status="attention">Not found in theme</Badge>
+                    )
                   ) : (
-                    <Badge status="attention">Not enabled</Badge>
+                    <Badge status="attention">Status unknown</Badge>
                   )}
                 </InlineStack>
                 <List>
@@ -365,6 +405,87 @@ export default function Index() {
         <Layout>
           <Layout.Section>
             <BlockStack gap="500">
+              {/* Setup Completion */}
+              <Card>
+                <BlockStack gap="400">
+                  <InlineStack align="space-between">
+                    <Text as="h2" variant="headingMd">
+                      App Embed Status
+                    </Text>
+                    {setupComplete && (
+                      <Badge status="success">
+                        <Box
+                          as="span"
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "6px",
+                          }}
+                        >
+                          <Box
+                            as="span"
+                            style={{
+                              width: "8px",
+                              height: "8px",
+                              borderRadius: "50%",
+                              backgroundColor: "#008060",
+                              display: "inline-block",
+                            }}
+                          />
+                          <span>Active</span>
+                        </Box>
+                      </Badge>
+                    )}
+                    {!setupComplete && (
+                      <Badge status="attention">
+                        <Box
+                          as="span"
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "6px",
+                          }}
+                        >
+                          <Box
+                            as="span"
+                            style={{
+                              width: "8px",
+                              height: "8px",
+                              borderRadius: "50%",
+                              backgroundColor: "#ffc453",
+                              display: "inline-block",
+                            }}
+                          />
+                          <span>Needs attention</span>
+                        </Box>
+                      </Badge>
+                    )}
+                  </InlineStack>
+                  {!setupComplete && (
+                    <>
+                      <Text as="p" variant="bodyMd" tone="subdued">
+                        Add and enable the app embed block in your theme to
+                        activate GeoQuote.
+                      </Text>
+                      <InlineStack gap="300">
+                        {activeThemeId ? (
+                          <Button
+                            url={`shopify:admin/themes/${activeThemeId}/editor?context=apps`}
+                            target="_blank"
+                          >
+                            Configure
+                          </Button>
+                        ) : (
+                          <Button url="/admin/themes" target="_blank">
+                            Configure
+                          </Button>
+                        )}
+                      </InlineStack>
+                    </>
+                  )}
+                </BlockStack>
+              </Card>
+
               {/* Statistics Cards */}
               <Card>
                 <BlockStack gap="400">
@@ -480,7 +601,7 @@ export default function Index() {
                       heading="No quote requests yet"
                       image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
                       action={{
-                        content: "Test the storefront",
+                        content: "Test Store",
                         url: "/app/testing",
                       }}
                     >
@@ -490,50 +611,6 @@ export default function Index() {
                       </Text>
                     </EmptyState>
                   )}
-                </BlockStack>
-              </Card>
-
-              {/* Setup Completion */}
-              <Card>
-                <BlockStack gap="400">
-                  <InlineStack align="space-between">
-                    <Text as="h2" variant="headingMd">
-                      Setup Status
-                    </Text>
-                    {setupComplete && <Badge status="success">Complete</Badge>}
-                    {!setupComplete && (
-                      <Badge status="attention">Incomplete</Badge>
-                    )}
-                  </InlineStack>
-                  <BlockStack gap="300">
-                    {setupItems.map((item, index) => (
-                      <InlineStack
-                        key={index}
-                        align="space-between"
-                        blockAlign="center"
-                      >
-                        <InlineStack gap="300" blockAlign="center">
-                          {item.completed ? (
-                            <Icon source={CheckIcon} tone="success" />
-                          ) : (
-                            <Badge status="attention" />
-                          )}
-                          <Text
-                            as="span"
-                            variant="bodyMd"
-                            tone={item.completed ? undefined : "subdued"}
-                          >
-                            {item.label}
-                          </Text>
-                        </InlineStack>
-                        {!item.completed && (
-                          <Button url={item.actionUrl} size="slim">
-                            Configure
-                          </Button>
-                        )}
-                      </InlineStack>
-                    ))}
-                  </BlockStack>
                 </BlockStack>
               </Card>
 

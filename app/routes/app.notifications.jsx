@@ -2,7 +2,6 @@ import { useCallback } from "react";
 import { useLoaderData } from "@remix-run/react";
 import {
   Page,
-  Layout,
   Card,
   BlockStack,
   Text,
@@ -10,7 +9,6 @@ import {
   List,
   Link,
 } from "@shopify/polaris";
-import { TitleBar } from "@shopify/app-bridge-react";
 import { json } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 

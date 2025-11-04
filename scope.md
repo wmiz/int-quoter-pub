@@ -60,7 +60,7 @@ If any of these differ from your needs, I’ll adjust the plan.
   - Draft Order: tags (e.g., “International Quote”), note template including collected info and cart summary.
 - **Data model (Prisma)**
   - Shop: `id`, `shopDomain`, `accessToken`, `scopes`, `installedAt`.
-  - Settings: `shopId`, `regionMode` (allow/block), `regions` (array of ISO codes), `placements`, `popupFields`, `translations`, `themeExtensionEnabled`, `draftOrderTags`, `createdAt/updatedAt`.
+  - Settings: `shopId`, `regionMode` (allow/block), `regions` (array of ISO codes), `placements`, `popupFields`, `translations`, `draftOrderTags`, `createdAt/updatedAt`.
   - QuoteLog: `id`, `shopId`, `ip`, `country`, `cartSnapshot`, `customerEmail`, `status`, `draftOrderId`, `createdAt`.
   - EmailTemplate: `shopId`, `type` (merchant/customer), `subject`, `body`, `locale`.
 

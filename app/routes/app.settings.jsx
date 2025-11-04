@@ -80,8 +80,6 @@ export const action = async ({ request }) => {
     popupFields = JSON.stringify(fields);
   }
   const draftOrderTags = formData.get("draftOrderTags") || null;
-  const themeExtensionEnabled =
-    formData.get("themeExtensionEnabled") === "true";
 
   // Update or create settings
   const settings = await prisma.settings.upsert({
@@ -91,7 +89,6 @@ export const action = async ({ request }) => {
       regions,
       popupFields,
       draftOrderTags,
-      themeExtensionEnabled,
     },
     create: {
       shopId: shop.id,
@@ -99,7 +96,6 @@ export const action = async ({ request }) => {
       regions,
       popupFields,
       draftOrderTags,
-      themeExtensionEnabled,
     },
   });
 
@@ -136,9 +132,6 @@ export default function Settings() {
   });
   const [draftOrderTags, setDraftOrderTags] = useState(
     settings?.draftOrderTags || ""
-  );
-  const [themeExtensionEnabled, setThemeExtensionEnabled] = useState(
-    settings?.themeExtensionEnabled || false
   );
 
   const isLoading =
@@ -201,7 +194,6 @@ export default function Settings() {
     formData.append("regions", JSON.stringify(regions));
     formData.append("popupFields", JSON.stringify(fieldsToSave));
     formData.append("draftOrderTags", draftOrderTags);
-    formData.append("themeExtensionEnabled", themeExtensionEnabled.toString());
 
     fetcher.submit(formData, { method: "POST" });
     shopify.toast.show("Settings saved successfully");
@@ -210,7 +202,6 @@ export default function Settings() {
     regions,
     popupFields,
     draftOrderTags,
-    themeExtensionEnabled,
     fetcher,
   ]);
 
@@ -375,23 +366,6 @@ export default function Settings() {
                       onChange={setDraftOrderTags}
                       placeholder="custom-order, international"
                       helpText="Enter comma-separated tags"
-                    />
-                  </BlockStack>
-                </Card>
-
-                <Card>
-                  <BlockStack gap="400">
-                    <Text as="h2" variant="headingMd">
-                      Theme Extension
-                    </Text>
-                    <Text as="p" variant="bodyMd" tone="subdued">
-                      Track whether the theme app extension has been installed
-                      and configured in your theme.
-                    </Text>
-                    <Checkbox
-                      label="Theme extension enabled"
-                      checked={themeExtensionEnabled}
-                      onChange={setThemeExtensionEnabled}
                     />
                   </BlockStack>
                 </Card>
