@@ -82,6 +82,7 @@ export const action = async ({ request }) => {
     popupFields = JSON.stringify(fields);
   }
   const draftOrderTags = formData.get("draftOrderTags") || null;
+  const hidePrices = formData.get("hidePrices") === "true";
 
   // Update or create settings
   const settings = await prisma.settings.upsert({
@@ -93,6 +94,7 @@ export const action = async ({ request }) => {
       blacklistCountries,
       popupFields,
       draftOrderTags,
+      hidePrices,
     },
     create: {
       shopId: shop.id,
@@ -102,6 +104,7 @@ export const action = async ({ request }) => {
       blacklistCountries,
       popupFields,
       draftOrderTags,
+      hidePrices,
     },
   });
 
@@ -166,6 +169,7 @@ export default function Settings() {
   const [draftOrderTags, setDraftOrderTags] = useState(
     settings?.draftOrderTags || ""
   );
+  const [hidePrices, setHidePrices] = useState(settings?.hidePrices || false);
 
   const isLoading =
     fetcher.state === "submitting" || fetcher.state === "loading";
@@ -234,6 +238,7 @@ export default function Settings() {
     formData.append("blacklistCountries", JSON.stringify(blacklistCountries));
     formData.append("popupFields", JSON.stringify(fieldsToSave));
     formData.append("draftOrderTags", draftOrderTags);
+    formData.append("hidePrices", hidePrices.toString());
 
     fetcher.submit(formData, { method: "POST" });
     shopify.toast.show("Settings saved successfully");
@@ -242,6 +247,7 @@ export default function Settings() {
     blacklistCountries,
     popupFields,
     draftOrderTags,
+    hidePrices,
     fetcher,
   ]);
 
@@ -292,6 +298,12 @@ export default function Settings() {
                       placeholder="CN, RU, BR"
                       helpText="Countries in this list will always show the quote request button, even if they have shipping profiles. Enter comma-separated ISO country codes."
                       multiline={2}
+                    />
+                    <Checkbox
+                      label="Hide prices for quote request countries"
+                      checked={hidePrices}
+                      onChange={setHidePrices}
+                      helpText="When enabled, prices will be hidden for customers in countries that see quote request buttons instead of checkout. This is useful for B2B merchants who want to provide pricing only after receiving a quote request."
                     />
                   </BlockStack>
                 </Card>

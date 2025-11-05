@@ -50,6 +50,7 @@ model Settings {
   blacklistCountries        String   @default("[]") // JSON array of ISO country codes that should always show quote request
   popupFields               String?  // JSON config for popup fields
   draftOrderTags            String?  // Comma-separated tags
+  hidePrices                Boolean  @default(false) // Hide prices for countries that show quote requests
   onboardingComplete        Boolean  @default(false) // Whether the onboarding process has been completed
   setupSuccessBannerDismissed Boolean @default(false) // Whether the setup success banner has been dismissed
   createdAt                 DateTime @default(now())
