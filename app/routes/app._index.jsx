@@ -18,8 +18,6 @@ import {
   Badge,
   DataTable,
   EmptyState,
-  Icon,
-  Box,
   Banner,
 } from "@shopify/polaris";
 import { CheckIcon } from "@shopify/polaris-icons";

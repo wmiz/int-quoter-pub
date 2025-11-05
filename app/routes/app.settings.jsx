@@ -1,12 +1,9 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useLoaderData, useFetcher } from "@remix-run/react";
 import {
-  Page,
-  Layout,
   Card,
   BlockStack,
   Text,
-  Select,
   TextField,
   Checkbox,
   InlineStack,
