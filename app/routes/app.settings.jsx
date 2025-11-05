@@ -256,8 +256,12 @@ export default function Settings() {
       <ui-toast ref={toastRef}></ui-toast>
 
       <Box paddingBlockStart="600" paddingBlockEnd="400">
-        <BlockStack align="center" gap="400">
-          <Box style={{ margin: "0 auto" }}>
+        <BlockStack
+          align="center"
+          gap="400"
+          style={{ maxWidth: "950px", margin: "0 auto" }}
+        >
+          <Box>
             <BlockStack gap="500">
               <BlockStack gap="500">
                 <Card>

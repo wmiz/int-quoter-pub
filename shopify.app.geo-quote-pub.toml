@@ -2,7 +2,7 @@
 
 client_id = "27c346eab6ca30969869df69f6c39a59"
 name = "GeoQuote"
-application_url = "https://example.com"
+application_url = "https://localhost:3458"
 embedded = true
 
 [webhooks]
@@ -10,10 +10,10 @@ api_version = "2026-01"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_themes"
+scopes = "read_themes, write_draft_orders"
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [ "https://localhost:3458/api/auth" ]
 
 [build]
 automatically_update_urls_on_dev = true
