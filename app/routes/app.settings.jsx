@@ -71,6 +71,8 @@ export const action = async ({ request }) => {
   // Parse form data
   const regionMode = formData.get("regionMode") || "allow";
   const regions = formData.get("regions") || "[]";
+  const whitelistCountries = formData.get("whitelistCountries") || "[]";
+  const blacklistCountries = formData.get("blacklistCountries") || "[]";
   let popupFields = formData.get("popupFields");
   if (popupFields) {
     // Ensure name and email are always enabled and required
@@ -87,6 +89,8 @@ export const action = async ({ request }) => {
     update: {
       regionMode,
       regions,
+      whitelistCountries,
+      blacklistCountries,
       popupFields,
       draftOrderTags,
     },
@@ -94,6 +98,8 @@ export const action = async ({ request }) => {
       shopId: shop.id,
       regionMode,
       regions,
+      whitelistCountries,
+      blacklistCountries,
       popupFields,
       draftOrderTags,
     },
@@ -107,13 +113,40 @@ export default function Settings() {
   const fetcher = useFetcher();
   const toastRef = useRef(null);
 
-  const [regionMode, setRegionMode] = useState(settings?.regionMode || "allow");
-  const [regions, setRegions] = useState(
-    settings?.regions ? JSON.parse(settings.regions) : []
-  );
-  const [regionsText, setRegionsText] = useState(
-    settings?.regions ? JSON.parse(settings.regions).join(", ") : ""
-  );
+  const [whitelistCountries, setWhitelistCountries] = useState(() => {
+    if (!settings?.whitelistCountries) return [];
+    try {
+      return JSON.parse(settings.whitelistCountries);
+    } catch {
+      return [];
+    }
+  });
+  const [whitelistText, setWhitelistText] = useState(() => {
+    if (!settings?.whitelistCountries) return "";
+    try {
+      const parsed = JSON.parse(settings.whitelistCountries);
+      return Array.isArray(parsed) ? parsed.join(", ") : "";
+    } catch {
+      return "";
+    }
+  });
+  const [blacklistCountries, setBlacklistCountries] = useState(() => {
+    if (!settings?.blacklistCountries) return [];
+    try {
+      return JSON.parse(settings.blacklistCountries);
+    } catch {
+      return [];
+    }
+  });
+  const [blacklistText, setBlacklistText] = useState(() => {
+    if (!settings?.blacklistCountries) return "";
+    try {
+      const parsed = JSON.parse(settings.blacklistCountries);
+      return Array.isArray(parsed) ? parsed.join(", ") : "";
+    } catch {
+      return "";
+    }
+  });
   const [popupFields, setPopupFields] = useState(() => {
     const defaultFields = {
       name: { enabled: true, required: true },
@@ -148,17 +181,22 @@ export default function Settings() {
     }
   }, [fetcher.data]);
 
-  const handleRegionModeChange = useCallback((value) => {
-    setRegionMode(value);
+  const handleWhitelistTextChange = useCallback((value) => {
+    setWhitelistText(value);
+    const parsedCountries = value
+      .split(",")
+      .map((c) => c.trim().toUpperCase())
+      .filter((c) => c.length > 0);
+    setWhitelistCountries(parsedCountries);
   }, []);
 
-  const handleRegionsTextChange = useCallback((value) => {
-    setRegionsText(value);
-    const parsedRegions = value
+  const handleBlacklistTextChange = useCallback((value) => {
+    setBlacklistText(value);
+    const parsedCountries = value
       .split(",")
-      .map((r) => r.trim())
-      .filter((r) => r.length > 0);
-    setRegions(parsedRegions);
+      .map((c) => c.trim().toUpperCase())
+      .filter((c) => c.length > 0);
+    setBlacklistCountries(parsedCountries);
   }, []);
 
   const handlePopupFieldChange = useCallback((field, enabled, required) => {
@@ -190,25 +228,22 @@ export default function Settings() {
     };
 
     const formData = new FormData();
-    formData.append("regionMode", regionMode);
-    formData.append("regions", JSON.stringify(regions));
+    formData.append("regionMode", "allow"); // Keep for backwards compatibility
+    formData.append("regions", "[]"); // Keep for backwards compatibility
+    formData.append("whitelistCountries", JSON.stringify(whitelistCountries));
+    formData.append("blacklistCountries", JSON.stringify(blacklistCountries));
     formData.append("popupFields", JSON.stringify(fieldsToSave));
     formData.append("draftOrderTags", draftOrderTags);
 
     fetcher.submit(formData, { method: "POST" });
     shopify.toast.show("Settings saved successfully");
   }, [
-    regionMode,
-    regions,
+    whitelistCountries,
+    blacklistCountries,
     popupFields,
     draftOrderTags,
     fetcher,
   ]);
-
-  const regionModeOptions = [
-    { label: "Block list (exclude these regions)", value: "block" },
-    { label: "Allow list (only these regions)", value: "allow" },
-  ];
 
   return (
     <s-page heading="Settings">
@@ -225,25 +260,37 @@ export default function Settings() {
                 <Card>
                   <BlockStack gap="400">
                     <Text as="h2" variant="headingMd">
-                      Regions & Routing
+                      Country Routing
                     </Text>
+                    <Banner status="info" title="Automatic quote requests">
+                      <Text as="p" variant="bodyMd">
+                        Countries that don't have existing shipping profiles in
+                        your Shopify store will automatically prompt customers
+                        for a quote request instead of showing the checkout
+                        button. This helps you handle international shipping
+                        requests more efficiently.
+                      </Text>
+                    </Banner>
                     <Text as="p" variant="bodyMd" tone="subdued">
-                      Configure which countries should be redirected to the
-                      quote flow. Uses ISO country codes consistent with Shopify
-                      shipping settings.
+                      Use the whitelist and blacklist below to override the
+                      automatic behavior for specific countries. Uses ISO
+                      country codes consistent with Shopify shipping settings
+                      (e.g., US, CA, GB, AU).
                     </Text>
-                    <Select
-                      label="Region mode"
-                      options={regionModeOptions}
-                      value={regionMode}
-                      onChange={handleRegionModeChange}
+                    <TextField
+                      label="Whitelist Countries"
+                      value={whitelistText}
+                      onChange={handleWhitelistTextChange}
+                      placeholder="US, CA, GB, AU"
+                      helpText="Countries in this list will always show the checkout button, even if they don't have shipping profiles. Enter comma-separated ISO country codes."
+                      multiline={2}
                     />
                     <TextField
-                      label="ISO Country Codes"
-                      value={regionsText}
-                      onChange={handleRegionsTextChange}
-                      placeholder="US, CA, GB, AU"
-                      helpText="Enter comma-separated ISO country codes (e.g., US, CA, GB)"
+                      label="Blacklist Countries"
+                      value={blacklistText}
+                      onChange={handleBlacklistTextChange}
+                      placeholder="CN, RU, BR"
+                      helpText="Countries in this list will always show the quote request button, even if they have shipping profiles. Enter comma-separated ISO country codes."
                       multiline={2}
                     />
                   </BlockStack>

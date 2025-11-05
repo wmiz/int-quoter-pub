@@ -125,11 +125,11 @@ export default function TestQuoteFlow() {
                       onClick={handleOpenStorefront}
                       disabled={!selectedCountry}
                     >
-                      Open Storefront
+                      Open Store
                     </Button>
                     <Text as="span" variant="bodyMd" tone="subdued">
                       {selectedCountry
-                        ? `Will open: ${storefrontUrl}?country=${selectedCountry}`
+                        ? `Will open: ${storefrontUrl}?gq_country=${selectedCountry}`
                         : "Select a country to continue"}
                     </Text>
                   </InlineStack>

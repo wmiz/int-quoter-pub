@@ -1,4 +1,10 @@
-import { useLoaderData, useSearchParams } from "@remix-run/react";
+import {
+  useLoaderData,
+  useSearchParams,
+  useFetcher,
+  useRevalidator,
+} from "@remix-run/react";
+import { useEffect } from "react";
 import {
   Page,
   Layout,
@@ -14,12 +20,71 @@ import {
   EmptyState,
   Icon,
   Box,
+  Banner,
 } from "@shopify/polaris";
 import { CheckIcon } from "@shopify/polaris-icons";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import { json } from "@remix-run/node";
 import prisma from "../db.server";
+
+export const action = async ({ request }) => {
+  const { session } = await authenticate.admin(request);
+  const shopDomain = session.shop;
+  const formData = await request.formData();
+  const actionType = formData.get("action");
+
+  // Get shop
+  const shop = await prisma.shop.findUnique({
+    where: { shopDomain },
+    include: { settings: true },
+  });
+
+  if (!shop) {
+    return json({ error: "Shop not found" }, { status: 404 });
+  }
+
+  if (actionType === "dismissBanner") {
+    // Mark the success banner as dismissed
+    await prisma.settings.upsert({
+      where: { shopId: shop.id },
+      update: { setupSuccessBannerDismissed: true },
+      create: {
+        shopId: shop.id,
+        setupSuccessBannerDismissed: true,
+      },
+    });
+    return json({ success: true });
+  }
+
+  if (actionType === "completeOnboarding") {
+    // Mark onboarding as complete
+    await prisma.settings.upsert({
+      where: { shopId: shop.id },
+      update: { onboardingComplete: true },
+      create: {
+        shopId: shop.id,
+        onboardingComplete: true,
+      },
+    });
+    return json({ success: true });
+  }
+
+  if (actionType === "resetOnboarding") {
+    // Reset onboarding to show onboarding view again
+    await prisma.settings.upsert({
+      where: { shopId: shop.id },
+      update: { onboardingComplete: false },
+      create: {
+        shopId: shop.id,
+        onboardingComplete: false,
+      },
+    });
+    return json({ success: true });
+  }
+
+  return json({ error: "Invalid action" }, { status: 400 });
+};
 
 export const loader = async ({ request }) => {
   const { admin, session } = await authenticate.admin(request);
@@ -41,10 +106,8 @@ export const loader = async ({ request }) => {
   }
 
   // Determine if onboarding should be shown
-  // Show onboarding if regions aren't configured
-  const hasConfiguredRegions =
-    settings?.regions && JSON.parse(settings.regions || "[]").length > 0;
-  const showOnboarding = !settings || !hasConfiguredRegions;
+  // Show onboarding if onboardingComplete is false
+  const showOnboarding = !settings?.onboardingComplete;
 
   // Get the active theme ID for theme customizer redirect
   let activeThemeId = null;
@@ -175,6 +238,18 @@ export const loader = async ({ request }) => {
 
   const recentQuotes = []; // Placeholder - will be populated from draft orders
 
+  // Check if setup is complete (app embed active)
+  const setupComplete = appEmbedActive;
+
+  // If setup is complete but onboarding isn't marked as complete, mark it
+  if (setupComplete && shop && settings && !settings.onboardingComplete) {
+    await prisma.settings.update({
+      where: { shopId: shop.id },
+      data: { onboardingComplete: true },
+    });
+    settings.onboardingComplete = true;
+  }
+
   return json({
     showOnboarding,
     activeThemeId,
@@ -182,6 +257,7 @@ export const loader = async ({ request }) => {
     quoteStats,
     recentQuotes,
     appEmbedActive,
+    setupSuccessBannerDismissed: settings?.setupSuccessBannerDismissed || false,
   });
 };
 
@@ -193,8 +269,18 @@ export default function Index() {
     quoteStats,
     recentQuotes,
     appEmbedActive,
+    setupSuccessBannerDismissed,
   } = useLoaderData();
   const [searchParams, setSearchParams] = useSearchParams();
+  const fetcher = useFetcher();
+  const revalidator = useRevalidator();
+
+  // Revalidate when onboarding is marked complete
+  useEffect(() => {
+    if (fetcher.data?.success && fetcher.state === "idle") {
+      revalidator.revalidate();
+    }
+  }, [fetcher.data, fetcher.state, revalidator]);
 
   // Get current time period from search params or default to "30"
   const currentPeriod = searchParams.get("period") || "30";
@@ -207,16 +293,11 @@ export default function Index() {
   };
 
   // Determine setup completion status
-  const hasRegions =
-    settings?.regions && JSON.parse(settings.regions || "[]").length > 0;
-
-  const setupComplete = hasRegions && appEmbedActive;
+  const setupComplete = appEmbedActive;
 
   return (
     <Page>
-      <TitleBar
-        title={showOnboarding ? "GeoQuote Setup" : "Dashboard"}
-      ></TitleBar>
+      <TitleBar title={showOnboarding ? "Setup" : "Dashboard"}></TitleBar>
       {showOnboarding ? (
         <Layout>
           <Layout.Section>
@@ -391,7 +472,7 @@ export default function Index() {
                       </Link>
                     </List.Item>
                     <List.Item>
-                      <Link url="mailto:support@example.com" removeUnderline>
+                      <Link url="mailto:me@willmisback.com" removeUnderline>
                         Contact support
                       </Link>
                     </List.Item>
@@ -400,91 +481,74 @@ export default function Index() {
               </Card>
             </BlockStack>
           </Layout.Section>
+
+          <Layout.Section>
+            <Card>
+              <BlockStack gap="400">
+                <Text as="p" variant="bodyMd">
+                  Once you've completed the setup steps above, you can mark the
+                  onboarding as complete to access the dashboard view.
+                </Text>
+                <InlineStack gap="300">
+                  <Button
+                    variant="primary"
+                    onClick={() => {
+                      const formData = new FormData();
+                      formData.append("action", "completeOnboarding");
+                      fetcher.submit(formData, { method: "POST" });
+                    }}
+                    loading={fetcher.state === "submitting"}
+                  >
+                    Mark setup complete
+                  </Button>
+                </InlineStack>
+              </BlockStack>
+            </Card>
+          </Layout.Section>
         </Layout>
       ) : (
         <Layout>
           <Layout.Section>
             <BlockStack gap="500">
-              {/* Setup Completion */}
-              <Card>
-                <BlockStack gap="400">
-                  <InlineStack align="space-between">
-                    <Text as="h2" variant="headingMd">
-                      App Embed Status
+              {/* Setup Status Banner */}
+              {!setupComplete && (
+                <Banner
+                  status="warning"
+                  title="Complete setup to activate GeoQuote"
+                  action={{
+                    content: activeThemeId
+                      ? "Open theme customizer"
+                      : "Configure",
+                    url: activeThemeId
+                      ? `shopify:admin/themes/${activeThemeId}/editor?context=apps`
+                      : "/admin/themes",
+                    target: "_blank",
+                  }}
+                >
+                  <BlockStack gap="200">
+                    <Text as="p" variant="bodyMd">
+                      {!appEmbedActive
+                        ? "Add and enable the app embed block in your theme to activate GeoQuote."
+                        : ""}
                     </Text>
-                    {setupComplete && (
-                      <Badge status="success">
-                        <Box
-                          as="span"
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "6px",
-                          }}
-                        >
-                          <Box
-                            as="span"
-                            style={{
-                              width: "8px",
-                              height: "8px",
-                              borderRadius: "50%",
-                              backgroundColor: "#008060",
-                              display: "inline-block",
-                            }}
-                          />
-                          <span>Active</span>
-                        </Box>
-                      </Badge>
-                    )}
-                    {!setupComplete && (
-                      <Badge status="attention">
-                        <Box
-                          as="span"
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "6px",
-                          }}
-                        >
-                          <Box
-                            as="span"
-                            style={{
-                              width: "8px",
-                              height: "8px",
-                              borderRadius: "50%",
-                              backgroundColor: "#ffc453",
-                              display: "inline-block",
-                            }}
-                          />
-                          <span>Needs attention</span>
-                        </Box>
-                      </Badge>
-                    )}
-                  </InlineStack>
-                  {!setupComplete && (
-                    <>
-                      <Text as="p" variant="bodyMd" tone="subdued">
-                        Add and enable the app embed block in your theme to
-                        activate GeoQuote.
-                      </Text>
-                      <InlineStack gap="300">
-                        {activeThemeId ? (
-                          <Button
-                            url={`shopify:admin/themes/${activeThemeId}/editor?context=apps`}
-                            target="_blank"
-                          >
-                            Configure
-                          </Button>
-                        ) : (
-                          <Button url="/admin/themes" target="_blank">
-                            Configure
-                          </Button>
-                        )}
-                      </InlineStack>
-                    </>
-                  )}
-                </BlockStack>
-              </Card>
+                  </BlockStack>
+                </Banner>
+              )}
+
+              {setupComplete && !setupSuccessBannerDismissed && (
+                <Banner
+                  status="success"
+                  onDismiss={() => {
+                    const formData = new FormData();
+                    formData.append("action", "dismissBanner");
+                    fetcher.submit(formData, { method: "POST" });
+                  }}
+                >
+                  <Text as="p" variant="bodyMd">
+                    GeoQuote is active and ready to receive quote requests.
+                  </Text>
+                </Banner>
+              )}
 
               {/* Statistics Cards */}
               <Card>
@@ -552,7 +616,7 @@ export default function Index() {
                             }).format(quoteStats.totalRevenue / 100)}
                           </Text>
                           <Text as="p" variant="bodyMd" tone="subdued">
-                            From quote requests
+                            From processed quote requests
                           </Text>
                         </BlockStack>
                       </Card>
@@ -568,8 +632,11 @@ export default function Index() {
                     <Text as="h2" variant="headingMd">
                       Recent Quote Requests
                     </Text>
-                    <Button url="/app/quotes" variant="plain">
-                      View all quote requests
+                    <Button
+                      url="shopify:admin/orders?tag=gq-quote"
+                      variant="plain"
+                    >
+                      View processed orders
                     </Button>
                   </InlineStack>
                   {recentQuotes.length > 0 ? (
@@ -662,20 +729,21 @@ export default function Index() {
                       </Text>
                       <List>
                         <List.Item>
-                          <Link
-                            url="mailto:support@example.com"
-                            removeUnderline
-                          >
+                          <Link url="mailto:me@willmisback.com" removeUnderline>
                             Contact support
                           </Link>
                         </List.Item>
                         <List.Item>
                           <Link
-                            url="https://help.example.com"
-                            target="_blank"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              const formData = new FormData();
+                              formData.append("action", "resetOnboarding");
+                              fetcher.submit(formData, { method: "POST" });
+                            }}
                             removeUnderline
                           >
-                            Help center
+                            Return to setup
                           </Link>
                         </List.Item>
                         <List.Item>
