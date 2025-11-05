@@ -241,15 +241,6 @@ export const loader = async ({ request }) => {
   // Check if setup is complete (app embed active)
   const setupComplete = appEmbedActive;
 
-  // If setup is complete but onboarding isn't marked as complete, mark it
-  if (setupComplete && shop && settings && !settings.onboardingComplete) {
-    await prisma.settings.update({
-      where: { shopId: shop.id },
-      data: { onboardingComplete: true },
-    });
-    settings.onboardingComplete = true;
-  }
-
   return json({
     showOnboarding,
     activeThemeId,
