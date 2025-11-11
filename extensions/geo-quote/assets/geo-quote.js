@@ -252,6 +252,90 @@
 
     deliverySection.appendChild(deliveryTitle);
 
+    // Country - Full width at the top
+    const countryGroup = document.createElement("div");
+    countryGroup.className = "geo-quote-form-group required";
+
+    const countrySelect = document.createElement("select");
+    countrySelect.id = "geo-quote-country";
+    countrySelect.name = "country";
+    countrySelect.required = true;
+
+    // Add placeholder option
+    const placeholderOption = document.createElement("option");
+    placeholderOption.value = "";
+    placeholderOption.textContent = "Country/Region";
+    placeholderOption.disabled = true;
+    placeholderOption.selected = true;
+    countrySelect.appendChild(placeholderOption);
+
+    // Add common countries (you can expand this list)
+    const countries = [
+      { code: "US", name: "United States" },
+      { code: "CA", name: "Canada" },
+      { code: "GB", name: "United Kingdom" },
+      { code: "AU", name: "Australia" },
+      { code: "DE", name: "Germany" },
+      { code: "FR", name: "France" },
+      { code: "IT", name: "Italy" },
+      { code: "ES", name: "Spain" },
+      { code: "NL", name: "Netherlands" },
+      { code: "BE", name: "Belgium" },
+      { code: "CH", name: "Switzerland" },
+      { code: "AT", name: "Austria" },
+      { code: "SE", name: "Sweden" },
+      { code: "NO", name: "Norway" },
+      { code: "DK", name: "Denmark" },
+      { code: "FI", name: "Finland" },
+      { code: "PL", name: "Poland" },
+      { code: "CZ", name: "Czech Republic" },
+      { code: "IE", name: "Ireland" },
+      { code: "PT", name: "Portugal" },
+      { code: "GR", name: "Greece" },
+      { code: "JP", name: "Japan" },
+      { code: "CN", name: "China" },
+      { code: "IN", name: "India" },
+      { code: "BR", name: "Brazil" },
+      { code: "MX", name: "Mexico" },
+      { code: "AR", name: "Argentina" },
+      { code: "ZA", name: "South Africa" },
+      { code: "NZ", name: "New Zealand" },
+      { code: "SG", name: "Singapore" },
+      { code: "HK", name: "Hong Kong" },
+      { code: "AE", name: "United Arab Emirates" },
+      { code: "SA", name: "Saudi Arabia" },
+      { code: "IL", name: "Israel" },
+      { code: "TR", name: "Turkey" },
+      { code: "RU", name: "Russia" },
+      { code: "KR", name: "South Korea" },
+      { code: "TH", name: "Thailand" },
+      { code: "MY", name: "Malaysia" },
+      { code: "ID", name: "Indonesia" },
+      { code: "PH", name: "Philippines" },
+      { code: "VN", name: "Vietnam" },
+    ];
+
+    // Try to detect user's country and set as default
+    const detectedCountry =
+      getCountryFromUrl() ||
+      document.body.dataset.country ||
+      window.geoQuoteCountry ||
+      null;
+
+    countries.forEach((country) => {
+      const option = document.createElement("option");
+      option.value = country.code;
+      option.textContent = country.name;
+      if (detectedCountry && country.code === detectedCountry.toUpperCase()) {
+        option.selected = true;
+        placeholderOption.selected = false;
+      }
+      countrySelect.appendChild(option);
+    });
+
+    countryGroup.appendChild(countrySelect);
+    deliverySection.appendChild(countryGroup);
+
     // Name fields - split into first/last
     if (popupFields.name?.enabled) {
       const nameRow = document.createElement("div");
@@ -328,91 +412,7 @@
 
     deliverySection.appendChild(cityStateZipRow);
 
-    // Country and ZIP row
-    const countryZipRow = document.createElement("div");
-    countryZipRow.className = "geo-quote-form-row";
-
-    // Country
-    const countryGroup = document.createElement("div");
-    countryGroup.className = "geo-quote-form-group required";
-
-    const countryLabel = document.createElement("label");
-    countryLabel.setAttribute("for", "geo-quote-country");
-    countryLabel.textContent = "Country/Region";
-
-    const countrySelect = document.createElement("select");
-    countrySelect.id = "geo-quote-country";
-    countrySelect.name = "country";
-    countrySelect.required = true;
-
-    // Add common countries (you can expand this list)
-    const countries = [
-      { code: "US", name: "United States" },
-      { code: "CA", name: "Canada" },
-      { code: "GB", name: "United Kingdom" },
-      { code: "AU", name: "Australia" },
-      { code: "DE", name: "Germany" },
-      { code: "FR", name: "France" },
-      { code: "IT", name: "Italy" },
-      { code: "ES", name: "Spain" },
-      { code: "NL", name: "Netherlands" },
-      { code: "BE", name: "Belgium" },
-      { code: "CH", name: "Switzerland" },
-      { code: "AT", name: "Austria" },
-      { code: "SE", name: "Sweden" },
-      { code: "NO", name: "Norway" },
-      { code: "DK", name: "Denmark" },
-      { code: "FI", name: "Finland" },
-      { code: "PL", name: "Poland" },
-      { code: "CZ", name: "Czech Republic" },
-      { code: "IE", name: "Ireland" },
-      { code: "PT", name: "Portugal" },
-      { code: "GR", name: "Greece" },
-      { code: "JP", name: "Japan" },
-      { code: "CN", name: "China" },
-      { code: "IN", name: "India" },
-      { code: "BR", name: "Brazil" },
-      { code: "MX", name: "Mexico" },
-      { code: "AR", name: "Argentina" },
-      { code: "ZA", name: "South Africa" },
-      { code: "NZ", name: "New Zealand" },
-      { code: "SG", name: "Singapore" },
-      { code: "HK", name: "Hong Kong" },
-      { code: "AE", name: "United Arab Emirates" },
-      { code: "SA", name: "Saudi Arabia" },
-      { code: "IL", name: "Israel" },
-      { code: "TR", name: "Turkey" },
-      { code: "RU", name: "Russia" },
-      { code: "KR", name: "South Korea" },
-      { code: "TH", name: "Thailand" },
-      { code: "MY", name: "Malaysia" },
-      { code: "ID", name: "Indonesia" },
-      { code: "PH", name: "Philippines" },
-      { code: "VN", name: "Vietnam" },
-    ];
-
-    // Try to detect user's country and set as default
-    const detectedCountry =
-      getCountryFromUrl() ||
-      document.body.dataset.country ||
-      window.geoQuoteCountry ||
-      null;
-
-    countries.forEach((country) => {
-      const option = document.createElement("option");
-      option.value = country.code;
-      option.textContent = country.name;
-      if (detectedCountry && country.code === detectedCountry.toUpperCase()) {
-        option.selected = true;
-      }
-      countrySelect.appendChild(option);
-    });
-
-    countryGroup.appendChild(countryLabel);
-    countryGroup.appendChild(countrySelect);
-    countryZipRow.appendChild(countryGroup);
-
-    // ZIP/Postal Code
+    // ZIP/Postal Code - Full width
     const zipGroup = createFormGroup(
       "zip",
       "ZIP code",
@@ -420,9 +420,7 @@
       true,
       "ZIP code"
     );
-    countryZipRow.appendChild(zipGroup);
-
-    deliverySection.appendChild(countryZipRow);
+    deliverySection.appendChild(zipGroup);
 
     // Phone field (optional)
     if (popupFields.phone?.enabled) {
@@ -443,22 +441,16 @@
         notesGroup.classList.add("required");
       }
 
-      const notesLabel = document.createElement("label");
-      notesLabel.setAttribute("for", "geo-quote-notes");
-      notesLabel.textContent = "Additional notes";
-      if (popupFields.notes.required) {
-        notesLabel.innerHTML += " *";
-      }
-
       const notesTextarea = document.createElement("textarea");
       notesTextarea.id = "geo-quote-notes";
       notesTextarea.name = "notes";
-      notesTextarea.placeholder = "Any additional information...";
+      notesTextarea.placeholder = popupFields.notes.required
+        ? "Additional notes *"
+        : "Additional notes (optional)";
       if (popupFields.notes.required) {
         notesTextarea.required = true;
       }
 
-      notesGroup.appendChild(notesLabel);
       notesGroup.appendChild(notesTextarea);
       deliverySection.appendChild(notesGroup);
     }
@@ -512,6 +504,10 @@
       const cartItem = document.createElement("div");
       cartItem.className = "geo-quote-cart-item";
 
+      // Image container with badge
+      const imageContainer = document.createElement("div");
+      imageContainer.className = "geo-quote-cart-item-image-container";
+
       // Image
       const image = document.createElement("img");
       image.className = "geo-quote-cart-item-image";
@@ -527,6 +523,14 @@
         image.style.display = "none";
       };
 
+      // Quantity badge
+      const quantityBadge = document.createElement("div");
+      quantityBadge.className = "geo-quote-cart-item-badge";
+      quantityBadge.textContent = item.quantity || 1;
+
+      imageContainer.appendChild(image);
+      imageContainer.appendChild(quantityBadge);
+
       // Details
       const details = document.createElement("div");
       details.className = "geo-quote-cart-item-details";
@@ -541,15 +545,10 @@
         variant.textContent = item.variant_title;
       }
 
-      const quantity = document.createElement("div");
-      quantity.className = "geo-quote-cart-item-quantity";
-      quantity.textContent = `Quantity: ${item.quantity}`;
-
       details.appendChild(name);
       if (item.variant_title && item.variant_title !== "Default Title") {
         details.appendChild(variant);
       }
-      details.appendChild(quantity);
 
       // Price
       const price = document.createElement("div");
@@ -557,7 +556,7 @@
       const itemTotal = (item.line_price || item.price * item.quantity) / 100;
       price.textContent = formatMoney(itemTotal);
 
-      cartItem.appendChild(image);
+      cartItem.appendChild(imageContainer);
       cartItem.appendChild(details);
       cartItem.appendChild(price);
       cartItemsContainer.appendChild(cartItem);
@@ -644,10 +643,6 @@
       group.classList.add("required");
     }
 
-    const labelEl = document.createElement("label");
-    labelEl.setAttribute("for", `geo-quote-${name}`);
-    labelEl.textContent = label;
-
     const input = document.createElement("input");
     input.type = type;
     input.id = `geo-quote-${name}`;
@@ -659,7 +654,6 @@
       input.placeholder = placeholder;
     }
 
-    group.appendChild(labelEl);
     group.appendChild(input);
 
     return group;
