@@ -598,14 +598,14 @@ export default function Index() {
                           <Text as="h2" variant="headingMd">
                             Total Revenue
                           </Text>
-                          <Text as="h1" variant="heading2xl">
+                          <Text as="h1" variant="heading2xl" tone="success">
                             {new Intl.NumberFormat("en-US", {
                               style: "currency",
                               currency: "USD",
                             }).format(quoteStats.totalRevenue / 100)}
                           </Text>
                           <Text as="p" variant="bodyMd" tone="subdued">
-                            From processed quote requests
+                            From quote requests
                           </Text>
                         </BlockStack>
                       </Card>
@@ -625,7 +625,7 @@ export default function Index() {
                       url="shopify:admin/orders?tag=gq-quote"
                       variant="plain"
                     >
-                      View processed orders
+                      View processed requests
                     </Button>
                   </InlineStack>
                   {recentQuotes.length > 0 ? (

@@ -1,3 +1,15 @@
+{% comment %}
+  Set the app URL for API calls
+  In production, this should be set to your app's URL (e.g., https://your-app.ngrok.io or your production domain)
+  For now, we'll try to construct it or use a relative path
+{% endcomment %}
+<script>
+  // Set app URL for geo-quote.js
+  // This should be your app's base URL (without trailing slash)
+  // Example: window.geoQuoteAppUrl = 'https://your-app-domain.com';
+  // If not set, the script will try to use a relative path
+  window.geoQuoteAppUrl = window.geoQuoteAppUrl || '';
+</script>
 <script src="{{ 'geo-quote.js' | asset_url }}" defer></script>
 
 {% schema %}

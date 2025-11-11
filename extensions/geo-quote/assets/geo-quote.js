@@ -42,11 +42,40 @@
         return false; // Fallback: show normal checkout
       }
 
-      // Fetch app settings to check if country is in allow/block list
+      // Get shop domain from Shopify global or construct from current domain
+      const shopDomain =
+        window.Shopify?.shop ||
+        (window.location.hostname.includes(".myshopify.com")
+          ? window.location.hostname
+          : null);
+
+      if (!shopDomain) {
+        console.warn("GeoQuote: Could not determine shop domain");
+        return false;
+      }
+
+      // Use relative path for app proxy
+      // The app proxy is configured to route /apps/geo-quote/* to our app server
+      // This works on the storefront domain (e.g., shop.myshopify.com/apps/geo-quote/settings)
+      const apiUrl = "/apps/geo-quote/settings";
+
+      // Send country_code to API endpoint
       const response = await fetch(
-        `/apps/geo-quote/settings?country=${encodeURIComponent(userCountry)}`
+        `${apiUrl}?country_code=${encodeURIComponent(userCountry)}&shop=${encodeURIComponent(shopDomain)}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
       );
+
       if (!response.ok) {
+        console.error(
+          "GeoQuote: API request failed",
+          response.status,
+          response.statusText
+        );
         return false;
       }
 
@@ -119,6 +148,7 @@
   // Replace checkout buttons
   async function replaceCheckoutButtons() {
     const shouldReplace = await shouldShowQuoteButton();
+    console.log("GeoQuote: Should replace:", shouldReplace);
     if (!shouldReplace) {
       return; // Show normal checkout
     }
