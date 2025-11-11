@@ -9,6 +9,7 @@ import {
   InlineStack,
   Banner,
   Box,
+  Button,
 } from "@shopify/polaris";
 // App Bridge Web Components are loaded globally via script in root; use <ui-title-bar> and <ui-toast>
 import { authenticate } from "../shopify.server";
@@ -270,25 +271,36 @@ export default function Settings() {
                       Country Routing
                     </Text>
                     <Banner status="info" title="Automatic quote requests">
-                      <Text as="p" variant="bodyMd">
-                        Countries that don't have existing shipping profiles in
-                        your Shopify store will automatically prompt customers
-                        for a quote request instead of showing the checkout
-                        button. This helps you handle international shipping
-                        requests more efficiently.
-                      </Text>
+                      <BlockStack gap="300">
+                        <Text as="p" variant="bodyMd">
+                          Countries that don't have existing shipping profiles
+                          in your Shopify store will automatically prompt
+                          customers for a quote request instead of showing the
+                          checkout button. This helps you handle international
+                          shipping requests more efficiently.
+                        </Text>
+                        <InlineStack blockAlign="center">
+                          <Button
+                            url="shopify:admin/settings/shipping"
+                            target="_blank"
+                            variant="secondary"
+                          >
+                            View shipping profiles
+                          </Button>
+                        </InlineStack>
+                      </BlockStack>
                     </Banner>
                     <Text as="p" variant="bodyMd" tone="subdued">
                       Use the whitelist and blacklist below to override the
                       automatic behavior for specific countries. Uses ISO
                       country codes consistent with Shopify shipping settings
-                      (e.g., US, CA, GB, AU).
+                      (e.g., US, CA, GB).
                     </Text>
                     <TextField
                       label="Whitelist Countries"
                       value={whitelistText}
                       onChange={handleWhitelistTextChange}
-                      placeholder="US, CA, GB, AU"
+                      placeholder="US, CA, GB"
                       helpText="Countries in this list will always show the checkout button, even if they don't have shipping profiles. Enter comma-separated ISO country codes."
                       multiline={2}
                     />
