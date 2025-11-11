@@ -1,16 +1,23 @@
 /* GeoQuote Theme App Extension Styles */
 
-/* Quote Modal Styles */
+/* Quote Modal Styles - Popup with Frosted Glass Effect */
 .geo-quote-modal {
   display: none;
   position: fixed;
-  z-index: 9999;
+  z-index: 99999;
   left: 0;
   top: 0;
   width: 100%;
   height: 100%;
-  overflow: auto;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  overflow-y: auto;
+  padding: 2rem;
+  box-sizing: border-box;
 }
 
 .geo-quote-modal.active {
@@ -20,51 +27,110 @@
 }
 
 .geo-quote-modal-content {
-  background-color: #fff;
-  margin: auto;
-  padding: 2rem;
-  border-radius: 8px;
-  max-width: 500px;
-  width: 90%;
+  display: flex;
+  max-width: 1200px;
+  width: 100%;
   max-height: 90vh;
+  margin: 0 auto;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  position: relative;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+/* Left Column - Form */
+.geo-quote-form-column {
+  flex: 1;
+  padding: 2rem 2.5rem;
+  background-color: #fff;
   overflow-y: auto;
+  max-height: 90vh;
+}
+
+/* Right Column - Order Summary */
+.geo-quote-summary-column {
+  flex: 1;
+  background-color: #fafafa;
+  border-left: 1px solid #e1e3e5;
+  padding: 2rem;
+  overflow-y: auto;
+  max-height: 90vh;
+}
+
+/* Header */
+.geo-quote-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e1e3e5;
+}
+
+.geo-quote-header h1 {
+  font-size: 2.6rem;
+  font-weight: 600;
+  margin: 0;
+  color: #202223;
 }
 
 .geo-quote-modal-close {
-  color: #aaa;
-  float: right;
-  font-size: 28px;
-  font-weight: bold;
+  color: #6d7175;
+  font-size: 32px;
+  font-weight: 400;
   cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s;
 }
 
-.geo-quote-modal-close:hover,
-.geo-quote-modal-close:focus {
-  color: #000;
+.geo-quote-modal-close:hover {
+  background-color: #f1f3f4;
+  color: #202223;
+}
+
+/* Form Sections */
+.geo-quote-section {
+  margin-bottom: 2rem;
+}
+
+.geo-quote-section-title {
+  font-size: 1.46rem;
+  font-weight: 600;
+  color: #202223;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.geo-quote-section-title a {
+  font-size: 1.14rem;
+  font-weight: 400;
+  color: #008060;
+  text-decoration: none;
 }
 
 .geo-quote-form-group {
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
 }
 
 .geo-quote-form-group label {
   display: block;
+  font-size: 1.3rem;
+  font-weight: 400;
+  color: #202223;
   margin-bottom: 0.5rem;
-  font-weight: 500;
-}
-
-.geo-quote-form-group input,
-.geo-quote-form-group textarea {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-}
-
-.geo-quote-form-group textarea {
-  min-height: 100px;
-  resize: vertical;
 }
 
 .geo-quote-form-group.required label::after {
@@ -72,23 +138,234 @@
   color: #d72c0d;
 }
 
-.geo-quote-button {
-  background-color: #008060;
-  color: white;
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 4px;
-  font-size: 1rem;
-  cursor: pointer;
+.geo-quote-form-group input,
+.geo-quote-form-group textarea,
+.geo-quote-form-group select {
   width: 100%;
-  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid #c9cccf;
+  border-radius: 4px;
+  font-size: 1.46rem;
+  font-family: inherit;
+  background-color: #fff;
+  color: #202223;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+  box-sizing: border-box;
 }
 
-.geo-quote-button:hover {
+.geo-quote-form-group input:focus,
+.geo-quote-form-group textarea:focus,
+.geo-quote-form-group select:focus {
+  outline: none;
+  border-color: #008060;
+  box-shadow: 0 0 0 1px #008060;
+}
+
+.geo-quote-form-group input::placeholder,
+.geo-quote-form-group textarea::placeholder {
+  color: #8c9196;
+}
+
+.geo-quote-form-group textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+/* Two-column layout for name fields */
+.geo-quote-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+/* Checkbox */
+.geo-quote-checkbox {
+  display: flex;
+  align-items: flex-start;
+  margin-top: 0.5rem;
+}
+
+.geo-quote-checkbox input[type="checkbox"] {
+  width: auto;
+  margin-right: 0.5rem;
+  margin-top: 0.125rem;
+}
+
+.geo-quote-checkbox label {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 400;
+}
+
+/* Submit Button */
+.geo-quote-button {
+  background-color: #008060;
+  color: #fff;
+  padding: 1.25rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 1.46rem;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 1.5rem;
+  transition: background-color 0.2s;
+}
+
+.geo-quote-button:hover:not(:disabled) {
   background-color: #006e52;
 }
 
 .geo-quote-button:disabled {
-  background-color: #ccc;
+  background-color: #c9cccf;
   cursor: not-allowed;
+}
+
+/* Messages */
+.geo-quote-message {
+  padding: 1rem 1.25rem;
+  border-radius: 4px;
+  margin-top: 1rem;
+  font-size: 1.3rem;
+}
+
+.geo-quote-error {
+  background-color: #fee;
+  color: #d72c0d;
+  border: 1px solid #fcc;
+}
+
+.geo-quote-success {
+  background-color: #e8f5e9;
+  color: #008060;
+  border: 1px solid #c8e6c9;
+}
+
+/* Order Summary */
+.geo-quote-summary-title {
+  font-size: 1.46rem;
+  font-weight: 600;
+  color: #202223;
+  margin-bottom: 1.5rem;
+}
+
+.geo-quote-cart-item {
+  display: flex;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e1e3e5;
+}
+
+.geo-quote-cart-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.geo-quote-cart-item-image {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-right: 1rem;
+  background-color: #f1f3f4;
+}
+
+.geo-quote-cart-item-details {
+  flex: 1;
+}
+
+.geo-quote-cart-item-name {
+  font-size: 1.3rem;
+  font-weight: 400;
+  color: #202223;
+  margin-bottom: 0.25rem;
+}
+
+.geo-quote-cart-item-variant {
+  font-size: 1.14rem;
+  color: #6d7175;
+  margin-bottom: 0.25rem;
+}
+
+.geo-quote-cart-item-quantity {
+  font-size: 1.14rem;
+  color: #6d7175;
+}
+
+.geo-quote-cart-item-price {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #202223;
+  text-align: right;
+}
+
+.geo-quote-summary-totals {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e1e3e5;
+}
+
+.geo-quote-summary-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  font-size: 1.3rem;
+  color: #6d7175;
+}
+
+.geo-quote-summary-row.total {
+  font-size: 1.46rem;
+  font-weight: 600;
+  color: #202223;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e1e3e5;
+}
+
+.geo-quote-summary-row-label {
+  color: #6d7175;
+}
+
+.geo-quote-summary-row-value {
+  color: #202223;
+}
+
+.geo-quote-summary-row.total .geo-quote-summary-row-label,
+.geo-quote-summary-row.total .geo-quote-summary-row-value {
+  color: #202223;
+  font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .geo-quote-modal {
+    padding: 1rem;
+  }
+
+  .geo-quote-modal-content {
+    flex-direction: column;
+    max-height: 95vh;
+  }
+
+  .geo-quote-form-column {
+    max-width: 100%;
+    padding: 1.5rem;
+    max-height: none;
+  }
+
+  .geo-quote-summary-column {
+    flex: 1;
+    position: relative;
+    height: auto;
+    border-left: none;
+    border-top: 1px solid #e1e3e5;
+    max-height: none;
+  }
+
+  .geo-quote-form-row {
+    grid-template-columns: 1fr;
+  }
 }

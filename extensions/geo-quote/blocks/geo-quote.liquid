@@ -3,6 +3,7 @@
   In production, this should be set to your app's URL (e.g., https://your-app.ngrok.io or your production domain)
   For now, we'll try to construct it or use a relative path
 {% endcomment %}
+<link rel="stylesheet" href="{{ 'geo-quote.css' | asset_url }}">
 <style>
   {% if block.settings.disable_buy_it_now %}
     shopify-accelerated-checkout {

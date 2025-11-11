@@ -179,9 +179,32 @@ export const loader = async ({ request }) => {
     // TODO: Check if shipping method exists for this country
     // For now, default to showing normal checkout if not in whitelist/blacklist
     // This will be implemented in the next step
+
+    // Parse popup fields configuration
+    let popupFields = {
+      name: { enabled: true, required: true },
+      email: { enabled: true, required: true },
+      phone: { enabled: false, required: false },
+      company: { enabled: false, required: false },
+      notes: { enabled: false, required: false },
+    };
+
+    try {
+      if (settings.popupFields) {
+        const savedFields = JSON.parse(settings.popupFields);
+        popupFields = { ...popupFields, ...savedFields };
+        // Ensure name and email are always enabled and required
+        popupFields.name = { enabled: true, required: true };
+        popupFields.email = { enabled: true, required: true };
+      }
+    } catch (e) {
+      console.error("Error parsing popupFields:", e);
+    }
+
     return json({
       shouldShowQuote: false,
       countryCode: normalizedCountryCode,
+      popupFields: popupFields,
       // Include this for debugging - will be used later for shipping check
       _debug: {
         shopDomain: normalizedShopDomain,
