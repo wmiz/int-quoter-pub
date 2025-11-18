@@ -361,22 +361,29 @@ export const loader = async ({ request }) => {
     const regularOrders =
       (!ordersData.errors &&
         ordersData.data?.orders?.edges
-          ?.map((edge) => ({
-            id: edge.node.id,
-            name: edge.node.name,
-            createdAt: edge.node.createdAt,
-            email: edge.node.email || edge.node.customer?.email || "",
-            customerName:
-              edge.node.customer?.displayName ||
-              edge.node.email ||
-              "Unknown Customer",
-            country: edge.node.shippingAddress?.country || "Unknown",
-            status: edge.node.displayFinancialStatus || "Unknown",
-            totalPrice: parseFloat(
+          ?.map((edge) => {
+            // Regular orders return totalPriceSet.shopMoney.amount as a decimal string in dollars (e.g., "10.25")
+            // Convert to cents to match draft orders format
+            const totalPriceInDollars = parseFloat(
               edge.node.totalPriceSet?.shopMoney?.amount || 0
-            ),
-            type: "order",
-          }))
+            );
+            const totalPriceInCents = Math.round(totalPriceInDollars * 100);
+
+            return {
+              id: edge.node.id,
+              name: edge.node.name,
+              createdAt: edge.node.createdAt,
+              email: edge.node.email || edge.node.customer?.email || "",
+              customerName:
+                edge.node.customer?.displayName ||
+                edge.node.email ||
+                "Unknown Customer",
+              country: edge.node.shippingAddress?.country || "Unknown",
+              status: edge.node.displayFinancialStatus || "Unknown",
+              totalPrice: totalPriceInCents,
+              type: "order",
+            };
+          })
           .filter((order) => {
             const orderDate = new Date(order.createdAt);
             return orderDate >= startDate && orderDate <= now;
