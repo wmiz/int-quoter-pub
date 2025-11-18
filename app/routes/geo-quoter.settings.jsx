@@ -4,9 +4,9 @@ import prisma from "../db.server";
 
 /**
  * Storefront API endpoint to check if quote button should be shown for a country
- * This endpoint is called from geo-quote.js on the storefront via app proxy
+ * This endpoint is called from geo-quoter.js on the storefront via app proxy
  *
- * GET /apps/geo-quote/settings?country_code=XX
+ * GET /apps/geo-quoter/settings?country_code=XX
  *
  * When accessed via app proxy, Shopify adds a signature parameter that must be verified
  */
@@ -214,7 +214,7 @@ export const loader = async ({ request }) => {
       },
     });
   } catch (error) {
-    console.error("Error in geo-quote settings endpoint:", error);
+    console.error("Error in geo-quoter settings endpoint:", error);
     // Fail gracefully - show normal checkout on error
     return json(
       { shouldShowQuote: false, error: "Internal server error" },

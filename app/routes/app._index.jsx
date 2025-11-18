@@ -181,13 +181,13 @@ export const loader = async ({ request }) => {
 
                 for (const [blockId, block] of Object.entries(blocks)) {
                   // Check if block type matches our app extension
-                  // Format: shopify://apps/geo-quote/blocks/<block_name>/<unique_ID>
+                  // Format: shopify://apps/geo-quoter/blocks/<block_name>/<unique_ID>
                   if (
                     block.type &&
                     typeof block.type === "string" &&
                     block.type.includes("shopify://apps/") &&
                     block.type.includes("/blocks/") &&
-                    block.type.includes("geo-quote")
+                    block.type.includes("geo-quoter")
                   ) {
                     // Check if block is enabled (disabled !== true)
                     // Blocks remain in settings_data.json even when disabled,
@@ -229,13 +229,18 @@ export const loader = async ({ request }) => {
   let quoteStats = {
     totalRequests: 0,
     totalRevenue: 0,
+    averageQuoteValue: 0,
+    conversionRate: 0,
+    quotesByCountry: [],
+    topProducts: [],
+    averageTimeToResponse: null,
     timePeriod,
   };
 
   let recentQuotes = [];
 
   try {
-    // Query draft orders with tag "gq-quote"
+    // Query draft orders with tag "gq-quote" - include line items and updatedAt
     const draftOrdersQuery = `
       query getDraftOrders($query: String!) {
         draftOrders(first: 50, query: $query) {
@@ -244,6 +249,7 @@ export const loader = async ({ request }) => {
               id
               name
               createdAt
+              updatedAt
               email
               status
               totalPrice
@@ -255,13 +261,29 @@ export const loader = async ({ request }) => {
                 email
               }
               tags
+              lineItems(first: 50) {
+                edges {
+                  node {
+                    title
+                    quantity
+                    variant {
+                      id
+                      title
+                      product {
+                        id
+                        title
+                      }
+                    }
+                  }
+                }
+              }
             }
           }
         }
       }
     `;
 
-    // Query regular orders with tag "gq-quote"
+    // Query regular orders with tag "gq-quote" - include line items
     const ordersQuery = `
       query getOrders($query: String!) {
         orders(first: 50, query: $query) {
@@ -286,6 +308,22 @@ export const loader = async ({ request }) => {
                 email
               }
               tags
+              lineItems(first: 50) {
+                edges {
+                  node {
+                    title
+                    quantity
+                    variant {
+                      id
+                      title
+                      product {
+                        id
+                        title
+                      }
+                    }
+                  }
+                }
+              }
             }
           }
         }
@@ -335,10 +373,25 @@ export const loader = async ({ request }) => {
             const totalPriceInDollars = parseFloat(edge.node.totalPrice || 0);
             const totalPriceInCents = Math.round(totalPriceInDollars * 100);
 
+            // Extract line items for product analytics
+            const lineItems =
+              edge.node.lineItems?.edges?.map((item) => ({
+                title:
+                  item.node.title ||
+                  item.node.variant?.title ||
+                  "Unknown Product",
+                productTitle:
+                  item.node.variant?.product?.title ||
+                  item.node.title ||
+                  "Unknown Product",
+                quantity: item.node.quantity || 0,
+              })) || [];
+
             return {
               id: edge.node.id,
               name: edge.node.name,
               createdAt: edge.node.createdAt,
+              updatedAt: edge.node.updatedAt || edge.node.createdAt,
               email: edge.node.email || edge.node.customer?.email || "",
               customerName:
                 edge.node.customer?.displayName ||
@@ -348,6 +401,8 @@ export const loader = async ({ request }) => {
               status: edge.node.status === "COMPLETED" ? "Completed" : "Draft",
               totalPrice: totalPriceInCents,
               type: "draft",
+              lineItems,
+              isCompleted: edge.node.status === "COMPLETED",
             };
           })
           .filter((order) => {
@@ -369,19 +424,42 @@ export const loader = async ({ request }) => {
             );
             const totalPriceInCents = Math.round(totalPriceInDollars * 100);
 
+            // Extract line items for product analytics
+            const lineItems =
+              edge.node.lineItems?.edges?.map((item) => ({
+                title:
+                  item.node.title ||
+                  item.node.variant?.title ||
+                  "Unknown Product",
+                productTitle:
+                  item.node.variant?.product?.title ||
+                  item.node.title ||
+                  "Unknown Product",
+                quantity: item.node.quantity || 0,
+              })) || [];
+
+            const financialStatus =
+              edge.node.displayFinancialStatus || "Unknown";
+            const isPaid =
+              financialStatus === "PAID" ||
+              financialStatus === "PARTIALLY_PAID";
+
             return {
               id: edge.node.id,
               name: edge.node.name,
               createdAt: edge.node.createdAt,
+              updatedAt: edge.node.createdAt, // Orders don't have updatedAt, use createdAt
               email: edge.node.email || edge.node.customer?.email || "",
               customerName:
                 edge.node.customer?.displayName ||
                 edge.node.email ||
                 "Unknown Customer",
               country: edge.node.shippingAddress?.country || "Unknown",
-              status: edge.node.displayFinancialStatus || "Unknown",
+              status: financialStatus,
               totalPrice: totalPriceInCents,
               type: "order",
+              lineItems,
+              isPaid,
             };
           })
           .filter((order) => {
@@ -395,13 +473,88 @@ export const loader = async ({ request }) => {
       (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
     );
 
-    // Calculate stats
+    // Calculate basic stats
     // Note: Both draftOrders and regularOrders have totalPrice in cents
     quoteStats.totalRequests = allQuotes.length;
     quoteStats.totalRevenue = allQuotes.reduce(
       (sum, quote) => sum + quote.totalPrice,
       0
     );
+
+    // Calculate average quote value
+    quoteStats.averageQuoteValue =
+      allQuotes.length > 0
+        ? Math.round(quoteStats.totalRevenue / allQuotes.length)
+        : 0;
+
+    // Calculate conversion rate (quotes that became paid orders)
+    // A quote converts if:
+    // 1. It's a draft order that was completed (status === "COMPLETED")
+    // 2. It's a regular order that is paid (financialStatus === "PAID" or "PARTIALLY_PAID")
+    const convertedQuotes = allQuotes.filter(
+      (quote) => quote.isCompleted || quote.isPaid
+    );
+    quoteStats.conversionRate =
+      allQuotes.length > 0
+        ? Math.round((convertedQuotes.length / allQuotes.length) * 100)
+        : 0;
+
+    // Calculate quotes by country
+    const countryMap = new Map();
+    allQuotes.forEach((quote) => {
+      const country = quote.country || "Unknown";
+      countryMap.set(country, (countryMap.get(country) || 0) + 1);
+    });
+    quoteStats.quotesByCountry = Array.from(countryMap.entries())
+      .map(([country, count]) => ({ country, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10); // Top 10 countries
+
+    // Calculate top products requested
+    const productMap = new Map();
+    allQuotes.forEach((quote) => {
+      quote.lineItems.forEach((item) => {
+        const productTitle =
+          item.productTitle || item.title || "Unknown Product";
+        const current = productMap.get(productTitle) || {
+          count: 0,
+          totalQuantity: 0,
+        };
+        productMap.set(productTitle, {
+          count: current.count + 1,
+          totalQuantity: current.totalQuantity + (item.quantity || 0),
+        });
+      });
+    });
+    quoteStats.topProducts = Array.from(productMap.entries())
+      .map(([product, stats]) => ({
+        product,
+        requestCount: stats.count,
+        totalQuantity: stats.totalQuantity,
+      }))
+      .sort((a, b) => b.requestCount - a.requestCount)
+      .slice(0, 10); // Top 10 products
+
+    // Calculate average time to first response
+    // For draft orders, use updatedAt - createdAt (time until first update/completion)
+    // For orders, we can't accurately measure response time without additional tracking
+    // So we'll focus on completed draft orders
+    const completedDraftOrders = draftOrders.filter(
+      (order) => order.isCompleted
+    );
+    if (completedDraftOrders.length > 0) {
+      const responseTimes = completedDraftOrders.map((order) => {
+        const createdAt = new Date(order.createdAt);
+        const updatedAt = new Date(order.updatedAt);
+        return updatedAt - createdAt; // Time difference in milliseconds
+      });
+      const averageTimeMs =
+        responseTimes.reduce((sum, time) => sum + time, 0) /
+        responseTimes.length;
+      quoteStats.averageTimeToResponse = Math.round(
+        averageTimeMs / (1000 * 60 * 60)
+      ); // Convert to hours
+    }
 
     // Format recent quotes for DataTable (limit to 10 most recent)
     recentQuotes = allQuotes.slice(0, 10).map((quote) => {
@@ -491,7 +644,7 @@ export default function Index() {
             <Card>
               <BlockStack gap="400">
                 <Text as="h2" variant="headingMd">
-                  Set up GeoQuote
+                  Set up GeoQuoter
                 </Text>
                 <Text as="p" variant="bodyMd">
                   Follow these steps to configure the app based on your business
@@ -701,7 +854,7 @@ export default function Index() {
               {!setupComplete && (
                 <Banner
                   status="warning"
-                  title="Complete setup to activate GeoQuote"
+                  title="Complete setup to activate GeoQuoter"
                   action={{
                     content: activeThemeId
                       ? "Open theme customizer"
@@ -715,7 +868,7 @@ export default function Index() {
                   <BlockStack gap="200">
                     <Text as="p" variant="bodyMd">
                       {!appEmbedActive
-                        ? "Add and enable the app embed block in your theme to activate GeoQuote."
+                        ? "Add and enable the app embed block in your theme to activate GeoQuoter."
                         : ""}
                     </Text>
                   </BlockStack>
@@ -732,17 +885,17 @@ export default function Index() {
                   }}
                 >
                   <Text as="p" variant="bodyMd">
-                    GeoQuote is active and ready to receive quote requests.
+                    GeoQuoter is active and ready to receive quote requests.
                   </Text>
                 </Banner>
               )}
 
-              {/* Statistics Cards */}
+              {/* Analytics Cards */}
               <Card>
                 <BlockStack gap="400">
                   <InlineStack align="space-between" blockAlign="center">
                     <Text as="h2" variant="headingMd">
-                      Statistics
+                      Analytics
                     </Text>
                     <InlineStack gap="300">
                       <Button
@@ -775,7 +928,7 @@ export default function Index() {
                     </InlineStack>
                   </InlineStack>
                   <Layout>
-                    <Layout.Section variant="oneHalf">
+                    <Layout.Section variant="oneThird">
                       <Card>
                         <BlockStack gap="300">
                           <Text as="h2" variant="headingMd">
@@ -790,7 +943,7 @@ export default function Index() {
                         </BlockStack>
                       </Card>
                     </Layout.Section>
-                    <Layout.Section variant="oneHalf">
+                    <Layout.Section variant="oneThird">
                       <Card>
                         <BlockStack gap="300">
                           <Text as="h2" variant="headingMd">
@@ -804,6 +957,58 @@ export default function Index() {
                           </Text>
                           <Text as="p" variant="bodyMd" tone="subdued">
                             From quote requests
+                          </Text>
+                        </BlockStack>
+                      </Card>
+                    </Layout.Section>
+                    <Layout.Section variant="oneThird">
+                      <Card>
+                        <BlockStack gap="300">
+                          <Text as="h2" variant="headingMd">
+                            Average Quote Value
+                          </Text>
+                          <Text as="h1" variant="heading2xl">
+                            {new Intl.NumberFormat("en-US", {
+                              style: "currency",
+                              currency: "USD",
+                            }).format(quoteStats.averageQuoteValue / 100)}
+                          </Text>
+                          <Text as="p" variant="bodyMd" tone="subdued">
+                            Per quote request
+                          </Text>
+                        </BlockStack>
+                      </Card>
+                    </Layout.Section>
+                  </Layout>
+                  <Layout>
+                    <Layout.Section variant="oneHalf">
+                      <Card>
+                        <BlockStack gap="300">
+                          <Text as="h2" variant="headingMd">
+                            Conversion Rate
+                          </Text>
+                          <Text as="h1" variant="heading2xl" tone="success">
+                            {quoteStats.conversionRate}%
+                          </Text>
+                          <Text as="p" variant="bodyMd" tone="subdued">
+                            Quote → Draft Order → Paid
+                          </Text>
+                        </BlockStack>
+                      </Card>
+                    </Layout.Section>
+                    <Layout.Section variant="oneHalf">
+                      <Card>
+                        <BlockStack gap="300">
+                          <Text as="h2" variant="headingMd">
+                            Time to First Response
+                          </Text>
+                          <Text as="h1" variant="heading2xl">
+                            {quoteStats.averageTimeToResponse !== null
+                              ? `${quoteStats.averageTimeToResponse}h`
+                              : "N/A"}
+                          </Text>
+                          <Text as="p" variant="bodyMd" tone="subdued">
+                            Average response time
                           </Text>
                         </BlockStack>
                       </Card>
@@ -874,6 +1079,69 @@ export default function Index() {
                   )}
                 </BlockStack>
               </Card>
+
+              {/* Analytics Sections */}
+              <Layout>
+                <Layout.Section variant="oneHalf">
+                  <Card>
+                    <BlockStack gap="400">
+                      <Text as="h2" variant="headingMd">
+                        Quotes by Country
+                      </Text>
+                      {quoteStats.quotesByCountry.length > 0 ? (
+                        <DataTable
+                          columnContentTypes={["text", "numeric"]}
+                          headings={["Country", "Quote Requests"]}
+                          rows={quoteStats.quotesByCountry.map((item) => [
+                            item.country,
+                            item.count.toString(),
+                          ])}
+                        />
+                      ) : (
+                        <EmptyState
+                          heading="No country data"
+                          image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+                        >
+                          <Text as="p" variant="bodyMd" tone="subdued">
+                            Country breakdown will appear here once quote
+                            requests are received.
+                          </Text>
+                        </EmptyState>
+                      )}
+                    </BlockStack>
+                  </Card>
+                </Layout.Section>
+                <Layout.Section variant="oneHalf">
+                  <Card>
+                    <BlockStack gap="400">
+                      <Text as="h2" variant="headingMd">
+                        Top Products Requested
+                      </Text>
+                      {quoteStats.topProducts.length > 0 ? (
+                        <DataTable
+                          columnContentTypes={["text", "numeric", "numeric"]}
+                          headings={["Product", "Requests", "Total Quantity"]}
+                          rows={quoteStats.topProducts.map((item) => [
+                            item.product,
+                            item.requestCount.toString(),
+                            item.totalQuantity.toString(),
+                          ])}
+                        />
+                      ) : (
+                        <EmptyState
+                          heading="No product data"
+                          image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+                        >
+                          <Text as="p" variant="bodyMd" tone="subdued">
+                            Top products will appear here once quote requests
+                            include product information.
+                          </Text>
+                        </EmptyState>
+                      )}
+                    </BlockStack>
+                  </Card>
+                </Layout.Section>
+              </Layout>
 
               {/* Documentation & Support */}
               <Layout>
