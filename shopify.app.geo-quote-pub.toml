@@ -10,7 +10,7 @@ api_version = "2026-01"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_themes, write_draft_orders, write_app_proxy, read_products"
+scopes = "read_themes, write_draft_orders, read_draft_orders, write_app_proxy, read_products, read_orders, read_customers"
 
 [auth]
 redirect_urls = [ "https://int-quoter-pub-production.up.railway.app:8080/api/auth" ]

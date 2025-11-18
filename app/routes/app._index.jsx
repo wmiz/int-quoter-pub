@@ -225,16 +225,207 @@ export const loader = async ({ request }) => {
     startDate.setDate(startDate.getDate() - 30);
   }
 
-  // TODO: Fetch actual quote requests from draft orders
-  // Filter by date range: created_at >= startDate AND created_at <= now
-  // For now, using placeholder data
-  const quoteStats = {
-    totalRequests: 0, // Placeholder - total number of quote requests in selected period
-    totalRevenue: 0, // Placeholder - total revenue from quote requests in selected period
-    timePeriod, // Include selected period in response
+  // Fetch actual quote requests from draft orders and regular orders tagged with "gq-quote"
+  let quoteStats = {
+    totalRequests: 0,
+    totalRevenue: 0,
+    timePeriod,
   };
 
-  const recentQuotes = []; // Placeholder - will be populated from draft orders
+  let recentQuotes = [];
+
+  try {
+    // Query draft orders with tag "gq-quote"
+    const draftOrdersQuery = `
+      query getDraftOrders($query: String!) {
+        draftOrders(first: 50, query: $query) {
+          edges {
+            node {
+              id
+              name
+              createdAt
+              email
+              status
+              totalPrice
+              shippingAddress {
+                country
+              }
+              customer {
+                displayName
+                email
+              }
+              tags
+            }
+          }
+        }
+      }
+    `;
+
+    // Query regular orders with tag "gq-quote"
+    const ordersQuery = `
+      query getOrders($query: String!) {
+        orders(first: 50, query: $query) {
+          edges {
+            node {
+              id
+              name
+              createdAt
+              email
+              displayFinancialStatus
+              totalPriceSet {
+                shopMoney {
+                  amount
+                  currencyCode
+                }
+              }
+              shippingAddress {
+                country
+              }
+              customer {
+                displayName
+                email
+              }
+              tags
+            }
+          }
+        }
+      }
+    `;
+
+    // Build query string for filtering by tag
+    // Note: Date filtering will be done in JavaScript after fetching
+    const queryString = `tag:gq-quote`;
+
+    // Fetch draft orders
+    const draftOrdersResponse = await admin.graphql(draftOrdersQuery, {
+      variables: { query: queryString },
+    });
+    const draftOrdersData = await draftOrdersResponse.json();
+
+    // Check for GraphQL errors in draft orders response
+    if (draftOrdersData.errors) {
+      console.error(
+        "GraphQL errors fetching draft orders:",
+        JSON.stringify(draftOrdersData.errors, null, 2)
+      );
+    }
+
+    // Fetch regular orders
+    const ordersResponse = await admin.graphql(ordersQuery, {
+      variables: { query: queryString },
+    });
+    const ordersData = await ordersResponse.json();
+
+    // Check for GraphQL errors in orders response
+    if (ordersData.errors) {
+      console.error(
+        "GraphQL errors fetching orders:",
+        JSON.stringify(ordersData.errors, null, 2)
+      );
+    }
+
+    // Process draft orders and filter by date range
+    // Only process if no errors occurred
+    const draftOrders =
+      (!draftOrdersData.errors &&
+        draftOrdersData.data?.draftOrders?.edges
+          ?.map((edge) => {
+            // Draft orders return totalPrice as a decimal number in dollars (e.g., 10.25)
+            // Convert to cents to match regular orders format
+            const totalPriceInDollars = parseFloat(edge.node.totalPrice || 0);
+            const totalPriceInCents = Math.round(totalPriceInDollars * 100);
+
+            return {
+              id: edge.node.id,
+              name: edge.node.name,
+              createdAt: edge.node.createdAt,
+              email: edge.node.email || edge.node.customer?.email || "",
+              customerName:
+                edge.node.customer?.displayName ||
+                edge.node.email ||
+                "Unknown Customer",
+              country: edge.node.shippingAddress?.country || "Unknown",
+              status: edge.node.status === "COMPLETED" ? "Completed" : "Draft",
+              totalPrice: totalPriceInCents,
+              type: "draft",
+            };
+          })
+          .filter((order) => {
+            const orderDate = new Date(order.createdAt);
+            return orderDate >= startDate && orderDate <= now;
+          })) ||
+      [];
+
+    // Process regular orders and filter by date range
+    // Only process if no errors occurred
+    const regularOrders =
+      (!ordersData.errors &&
+        ordersData.data?.orders?.edges
+          ?.map((edge) => ({
+            id: edge.node.id,
+            name: edge.node.name,
+            createdAt: edge.node.createdAt,
+            email: edge.node.email || edge.node.customer?.email || "",
+            customerName:
+              edge.node.customer?.displayName ||
+              edge.node.email ||
+              "Unknown Customer",
+            country: edge.node.shippingAddress?.country || "Unknown",
+            status: edge.node.displayFinancialStatus || "Unknown",
+            totalPrice: parseFloat(
+              edge.node.totalPriceSet?.shopMoney?.amount || 0
+            ),
+            type: "order",
+          }))
+          .filter((order) => {
+            const orderDate = new Date(order.createdAt);
+            return orderDate >= startDate && orderDate <= now;
+          })) ||
+      [];
+
+    // Combine and sort by date (most recent first)
+    const allQuotes = [...draftOrders, ...regularOrders].sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    );
+
+    // Calculate stats
+    // Note: Both draftOrders and regularOrders have totalPrice in cents
+    quoteStats.totalRequests = allQuotes.length;
+    quoteStats.totalRevenue = allQuotes.reduce(
+      (sum, quote) => sum + quote.totalPrice,
+      0
+    );
+
+    // Format recent quotes for DataTable (limit to 10 most recent)
+    recentQuotes = allQuotes.slice(0, 10).map((quote) => {
+      const date = new Date(quote.createdAt);
+      const formattedDate = date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      // Extract order ID and create URL
+      const orderId = quote.id.split("/").pop();
+      const orderUrl =
+        quote.type === "draft"
+          ? `shopify:admin/draft_orders/${orderId}`
+          : `shopify:admin/orders/${orderId}`;
+
+      return {
+        date: formattedDate,
+        customer: quote.customerName,
+        country: quote.country,
+        status: quote.status,
+        orderUrl, // Store URL for rendering Button in component
+      };
+    });
+  } catch (error) {
+    console.error("Error fetching quote requests:", error);
+    // Keep default empty values on error
+  }
 
   // Check if setup is complete (app embed active)
   const setupComplete = appEmbedActive;
@@ -649,7 +840,14 @@ export default function Index() {
                         quote.customer,
                         quote.country,
                         quote.status,
-                        quote.actions,
+                        <Button
+                          key={quote.orderUrl}
+                          url={quote.orderUrl}
+                          variant="plain"
+                          size="micro"
+                        >
+                          View
+                        </Button>,
                       ])}
                     />
                   ) : (

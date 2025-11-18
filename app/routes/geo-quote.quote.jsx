@@ -340,7 +340,7 @@ export const action = async ({ request }) => {
       include: { settings: true },
     });
 
-    let tags = ["International-Quote"];
+    let tags = ["gq-quote"];
     if (shopRecord?.settings?.draftOrderTags) {
       try {
         // draftOrderTags is stored as a comma-separated string or JSON array string
