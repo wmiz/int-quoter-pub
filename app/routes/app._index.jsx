@@ -181,13 +181,13 @@ export const loader = async ({ request }) => {
 
                 for (const [blockId, block] of Object.entries(blocks)) {
                   // Check if block type matches our app extension
-                  // Format: shopify://apps/geo-quoter/blocks/<block_name>/<unique_ID>
+                  // Format: shopify://apps/frontier-quote/blocks/<block_name>/<unique_ID>
                   if (
                     block.type &&
                     typeof block.type === "string" &&
                     block.type.includes("shopify://apps/") &&
                     block.type.includes("/blocks/") &&
-                    block.type.includes("geo-quoter")
+                    block.type.includes("frontier-quote")
                   ) {
                     // Check if block is enabled (disabled !== true)
                     // Blocks remain in settings_data.json even when disabled,
@@ -644,7 +644,7 @@ export default function Index() {
             <Card>
               <BlockStack gap="400">
                 <Text as="h2" variant="headingMd">
-                  Set up GeoQuoter
+                  Set up FrontierQuote
                 </Text>
                 <Text as="p" variant="bodyMd">
                   Follow these steps to configure the app based on your business
@@ -854,7 +854,7 @@ export default function Index() {
               {!setupComplete && (
                 <Banner
                   status="warning"
-                  title="Complete setup to activate GeoQuoter"
+                  title="Complete setup to activate FrontierQuote"
                   action={{
                     content: activeThemeId
                       ? "Open theme customizer"
@@ -868,7 +868,7 @@ export default function Index() {
                   <BlockStack gap="200">
                     <Text as="p" variant="bodyMd">
                       {!appEmbedActive
-                        ? "Add and enable the app embed block in your theme to activate GeoQuoter."
+                        ? "Add and enable the app embed block in your theme to activate FrontierQuote."
                         : ""}
                     </Text>
                   </BlockStack>
@@ -885,7 +885,7 @@ export default function Index() {
                   }}
                 >
                   <Text as="p" variant="bodyMd">
-                    GeoQuoter is active and ready to receive quote requests.
+                    FrontierQuote is active and ready to receive quote requests.
                   </Text>
                 </Banner>
               )}

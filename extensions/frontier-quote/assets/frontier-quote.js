@@ -1,5 +1,5 @@
 /**
- * GeoQuoter Theme App Extension
+ * FrontierQuote Theme App Extension
  * Replaces checkout buttons with "Get a Quote" flow for configured regions
  */
 
@@ -7,13 +7,13 @@
   "use strict";
 
   // Log asset load for diagnostics
-  console.info("GeoQuoter: asset loaded", {
+  console.info("FrontierQuote: asset loaded", {
     time: new Date().toISOString(),
     shop: window.Shopify?.shop || "",
   });
 
   // Configuration - will be fetched from app settings
-  const GEOQUOTER_CONFIG = {
+  const FRONTIERQUOTE_CONFIG = {
     shopDomain: window.Shopify?.shop || "",
     enabled: true,
     popupFields: null, // Will be populated from settings API
@@ -22,7 +22,7 @@
   // Get country from URL parameter (for testing)
   function getCountryFromUrl() {
     const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get("gq_country") || null;
+    return urlParams.get("fq_country") || null;
   }
 
   // Check if user's country matches configured regions
@@ -34,7 +34,7 @@
       const userCountry =
         getCountryFromUrl() ||
         document.body.dataset.country ||
-        window.geoQuoterCountry ||
+        window.frontierQuoteCountry ||
         (await detectCountryFromShopify()) ||
         (await detectCountry());
 
@@ -50,14 +50,14 @@
           : null);
 
       if (!shopDomain) {
-        console.warn("GeoQuoter: Could not determine shop domain");
+        console.warn("FrontierQuote: Could not determine shop domain");
         return false;
       }
 
       // Use relative path for app proxy
-      // The app proxy is configured to route /apps/geo-quoter/* to our app server
-      // This works on the storefront domain (e.g., shop.myshopify.com/apps/geo-quoter/settings)
-      const apiUrl = "/apps/geo-quoter/settings";
+      // The app proxy is configured to route /apps/frontier-quote/* to our app server
+      // This works on the storefront domain (e.g., shop.myshopify.com/apps/frontier-quote/settings)
+      const apiUrl = "/apps/frontier-quote/settings";
 
       // Send country_code to API endpoint
       const response = await fetch(
@@ -72,7 +72,7 @@
 
       if (!response.ok) {
         console.error(
-          "GeoQuoter: API request failed",
+          "FrontierQuote: API request failed",
           response.status,
           response.statusText
         );
@@ -83,12 +83,12 @@
 
       // Store popup fields configuration for later use
       if (settings.popupFields) {
-        GEOQUOTER_CONFIG.popupFields = settings.popupFields;
+        FRONTIERQUOTE_CONFIG.popupFields = settings.popupFields;
       }
 
       return settings.shouldShowQuote;
     } catch (error) {
-      console.error("GeoQuoter: Error checking region:", error);
+      console.error("FrontierQuote: Error checking region:", error);
       return false; // Fail gracefully - show normal checkout
     }
   }
@@ -107,7 +107,7 @@
         return handle.toUpperCase();
       }
     } catch (error) {
-      console.error("GeoQuoter: Shopify country detection failed:", error);
+      console.error("FrontierQuote: Shopify country detection failed:", error);
     }
     return null;
   }
@@ -116,8 +116,8 @@
   async function detectCountry() {
     try {
       // Check localStorage cache first (24h TTL)
-      const cached = localStorage.getItem("geoquoter_country");
-      const cachedTime = localStorage.getItem("geoquoter_country_time");
+      const cached = localStorage.getItem("frontierquote_country");
+      const cachedTime = localStorage.getItem("frontierquote_country_time");
       if (
         cached &&
         cachedTime &&
@@ -134,12 +134,12 @@
       const country = data.country_code;
 
       if (country) {
-        localStorage.setItem("geoquoter_country", country);
-        localStorage.setItem("geoquoter_country_time", Date.now().toString());
+        localStorage.setItem("frontierquote_country", country);
+        localStorage.setItem("frontierquote_country_time", Date.now().toString());
         return country;
       }
     } catch (error) {
-      console.error("GeoQuoter: Country detection failed:", error);
+      console.error("FrontierQuote: Country detection failed:", error);
     }
     return null;
   }
@@ -153,7 +153,7 @@
       }
       return await response.json();
     } catch (error) {
-      console.error("GeoQuoter: Error fetching cart:", error);
+      console.error("FrontierQuote: Error fetching cart:", error);
       return null;
     }
   }
@@ -161,7 +161,7 @@
   // Create and show quote modal
   async function showQuoteModal() {
     // Check if modal already exists
-    let modal = document.getElementById("geo-quoter-modal");
+    let modal = document.getElementById("frontier-quote-modal");
     if (modal) {
       modal.classList.add("active");
       return;
@@ -175,7 +175,7 @@
     }
 
     // Get popup fields configuration
-    const popupFields = GEOQUOTER_CONFIG.popupFields || {
+    const popupFields = FRONTIERQUOTE_CONFIG.popupFields || {
       name: { enabled: true, required: true },
       email: { enabled: true, required: true },
       phone: { enabled: false, required: false },
@@ -185,25 +185,25 @@
 
     // Create modal HTML
     modal = document.createElement("div");
-    modal.id = "geo-quoter-modal";
-    modal.className = "geo-quoter-modal";
+    modal.id = "frontier-quote-modal";
+    modal.className = "frontier-quote-modal";
 
     const modalContent = document.createElement("div");
-    modalContent.className = "geo-quoter-modal-content";
+    modalContent.className = "frontier-quote-modal-content";
 
     // Left Column - Form
     const formColumn = document.createElement("div");
-    formColumn.className = "geo-quoter-form-column";
+    formColumn.className = "frontier-quote-form-column";
 
     // Header
     const header = document.createElement("div");
-    header.className = "geo-quoter-header";
+    header.className = "frontier-quote-header";
 
     const title = document.createElement("h1");
     title.textContent = "Request a Quote";
 
     const closeBtn = document.createElement("button");
-    closeBtn.className = "geo-quoter-modal-close";
+    closeBtn.className = "frontier-quote-modal-close";
     closeBtn.innerHTML = "&times;";
     closeBtn.setAttribute("aria-label", "Close");
     closeBtn.onclick = () => {
@@ -216,14 +216,14 @@
 
     // Form
     const form = document.createElement("form");
-    form.id = "geo-quoter-form";
+    form.id = "frontier-quote-form";
 
     // Contact Section
     const contactSection = document.createElement("div");
-    contactSection.className = "geo-quoter-section";
+    contactSection.className = "frontier-quote-section";
 
     const contactTitle = document.createElement("div");
-    contactTitle.className = "geo-quoter-section-title";
+    contactTitle.className = "frontier-quote-section-title";
     contactTitle.textContent = "Contact";
 
     contactSection.appendChild(contactTitle);
@@ -244,20 +244,20 @@
 
     // Delivery/Shipping Section
     const deliverySection = document.createElement("div");
-    deliverySection.className = "geo-quoter-section";
+    deliverySection.className = "frontier-quote-section";
 
     const deliveryTitle = document.createElement("div");
-    deliveryTitle.className = "geo-quoter-section-title";
+    deliveryTitle.className = "frontier-quote-section-title";
     deliveryTitle.textContent = "Delivery";
 
     deliverySection.appendChild(deliveryTitle);
 
     // Country - Full width at the top
     const countryGroup = document.createElement("div");
-    countryGroup.className = "geo-quoter-form-group required";
+    countryGroup.className = "frontier-quote-form-group required";
 
     const countrySelect = document.createElement("select");
-    countrySelect.id = "geo-quoter-country";
+    countrySelect.id = "frontier-quote-country";
     countrySelect.name = "country";
     countrySelect.required = true;
 
@@ -319,7 +319,7 @@
     const detectedCountry =
       getCountryFromUrl() ||
       document.body.dataset.country ||
-      window.geoQuoterCountry ||
+      window.frontierQuoteCountry ||
       null;
 
     countries.forEach((country) => {
@@ -339,7 +339,7 @@
     // Name fields - split into first/last
     if (popupFields.name?.enabled) {
       const nameRow = document.createElement("div");
-      nameRow.className = "geo-quoter-form-row";
+      nameRow.className = "frontier-quote-form-row";
 
       const firstNameGroup = createFormGroup(
         "first_name",
@@ -394,7 +394,7 @@
 
     // City, State/Province, ZIP row
     const cityStateZipRow = document.createElement("div");
-    cityStateZipRow.className = "geo-quoter-form-row";
+    cityStateZipRow.className = "frontier-quote-form-row";
 
     // City
     const cityGroup = createFormGroup("city", "City", "text", true, "City");
@@ -436,13 +436,13 @@
     // Notes field (optional, textarea)
     if (popupFields.notes?.enabled) {
       const notesGroup = document.createElement("div");
-      notesGroup.className = "geo-quoter-form-group";
+      notesGroup.className = "frontier-quote-form-group";
       if (popupFields.notes.required) {
         notesGroup.classList.add("required");
       }
 
       const notesTextarea = document.createElement("textarea");
-      notesTextarea.id = "geo-quoter-notes";
+      notesTextarea.id = "frontier-quote-notes";
       notesTextarea.name = "notes";
       notesTextarea.placeholder = popupFields.notes.required
         ? "Additional notes *"
@@ -459,22 +459,22 @@
 
     // Error message container
     const errorMsg = document.createElement("div");
-    errorMsg.id = "geo-quoter-error";
-    errorMsg.className = "geo-quoter-message geo-quoter-error";
+    errorMsg.id = "frontier-quote-error";
+    errorMsg.className = "frontier-quote-message frontier-quote-error";
     errorMsg.style.display = "none";
     form.appendChild(errorMsg);
 
     // Success message container
     const successMsg = document.createElement("div");
-    successMsg.id = "geo-quoter-success";
-    successMsg.className = "geo-quoter-message geo-quoter-success";
+    successMsg.id = "frontier-quote-success";
+    successMsg.className = "frontier-quote-message frontier-quote-success";
     successMsg.style.display = "none";
     form.appendChild(successMsg);
 
     // Submit button
     const submitBtn = document.createElement("button");
     submitBtn.type = "submit";
-    submitBtn.className = "geo-quoter-button";
+    submitBtn.className = "frontier-quote-button";
     submitBtn.textContent = "Request Quote";
     form.appendChild(submitBtn);
 
@@ -496,21 +496,21 @@
 
     // Right Column - Order Summary
     const summaryColumn = document.createElement("div");
-    summaryColumn.className = "geo-quoter-summary-column";
+    summaryColumn.className = "frontier-quote-summary-column";
 
     // Cart items
     const cartItemsContainer = document.createElement("div");
     cartData.items.forEach((item) => {
       const cartItem = document.createElement("div");
-      cartItem.className = "geo-quoter-cart-item";
+      cartItem.className = "frontier-quote-cart-item";
 
       // Image container with badge
       const imageContainer = document.createElement("div");
-      imageContainer.className = "geo-quoter-cart-item-image-container";
+      imageContainer.className = "frontier-quote-cart-item-image-container";
 
       // Image
       const image = document.createElement("img");
-      image.className = "geo-quoter-cart-item-image";
+      image.className = "frontier-quote-cart-item-image";
       // Shopify cart.js returns image URLs that need to be formatted
       if (item.image) {
         // Convert to proper image URL format (remove size parameters, use _small or _compact)
@@ -525,7 +525,7 @@
 
       // Quantity badge
       const quantityBadge = document.createElement("div");
-      quantityBadge.className = "geo-quoter-cart-item-badge";
+      quantityBadge.className = "frontier-quote-cart-item-badge";
       quantityBadge.textContent = item.quantity || 1;
 
       imageContainer.appendChild(image);
@@ -533,14 +533,14 @@
 
       // Details
       const details = document.createElement("div");
-      details.className = "geo-quoter-cart-item-details";
+      details.className = "frontier-quote-cart-item-details";
 
       const name = document.createElement("div");
-      name.className = "geo-quoter-cart-item-name";
+      name.className = "frontier-quote-cart-item-name";
       name.textContent = item.product_title || item.title;
 
       const variant = document.createElement("div");
-      variant.className = "geo-quoter-cart-item-variant";
+      variant.className = "frontier-quote-cart-item-variant";
       if (item.variant_title && item.variant_title !== "Default Title") {
         variant.textContent = item.variant_title;
       }
@@ -552,7 +552,7 @@
 
       // Price
       const price = document.createElement("div");
-      price.className = "geo-quoter-cart-item-price";
+      price.className = "frontier-quote-cart-item-price";
       const itemTotal = (item.line_price || item.price * item.quantity) / 100;
       price.textContent = formatMoney(itemTotal);
 
@@ -566,39 +566,39 @@
 
     // Totals
     const totalsContainer = document.createElement("div");
-    totalsContainer.className = "geo-quoter-summary-totals";
+    totalsContainer.className = "frontier-quote-summary-totals";
 
     const subtotalRow = document.createElement("div");
-    subtotalRow.className = "geo-quoter-summary-row";
+    subtotalRow.className = "frontier-quote-summary-row";
     const subtotalLabel = document.createElement("span");
-    subtotalLabel.className = "geo-quoter-summary-row-label";
+    subtotalLabel.className = "frontier-quote-summary-row-label";
     subtotalLabel.textContent = "Subtotal";
     const subtotalValue = document.createElement("span");
-    subtotalValue.className = "geo-quoter-summary-row-value";
+    subtotalValue.className = "frontier-quote-summary-row-value";
     subtotalValue.textContent = formatMoney(cartData.total_price / 100);
     subtotalRow.appendChild(subtotalLabel);
     subtotalRow.appendChild(subtotalValue);
     totalsContainer.appendChild(subtotalRow);
 
     const shippingRow = document.createElement("div");
-    shippingRow.className = "geo-quoter-summary-row";
+    shippingRow.className = "frontier-quote-summary-row";
     const shippingLabel = document.createElement("span");
-    shippingLabel.className = "geo-quoter-summary-row-label";
+    shippingLabel.className = "frontier-quote-summary-row-label";
     shippingLabel.textContent = "Shipping";
     const shippingValue = document.createElement("span");
-    shippingValue.className = "geo-quoter-summary-row-value";
+    shippingValue.className = "frontier-quote-summary-row-value";
     shippingValue.textContent = "Calculated after quote";
     shippingRow.appendChild(shippingLabel);
     shippingRow.appendChild(shippingValue);
     totalsContainer.appendChild(shippingRow);
 
     const totalRow = document.createElement("div");
-    totalRow.className = "geo-quoter-summary-row total";
+    totalRow.className = "frontier-quote-summary-row total";
     const totalLabel = document.createElement("span");
-    totalLabel.className = "geo-quoter-summary-row-label";
+    totalLabel.className = "frontier-quote-summary-row-label";
     totalLabel.textContent = "Total";
     const totalValue = document.createElement("span");
-    totalValue.className = "geo-quoter-summary-row-value";
+    totalValue.className = "frontier-quote-summary-row-value";
     totalValue.textContent = formatMoney(cartData.total_price / 100);
     totalRow.appendChild(totalLabel);
     totalRow.appendChild(totalValue);
@@ -638,14 +638,14 @@
   // Helper function to create form group
   function createFormGroup(name, label, type, required, placeholder = null) {
     const group = document.createElement("div");
-    group.className = "geo-quoter-form-group";
+    group.className = "frontier-quote-form-group";
     if (required) {
       group.classList.add("required");
     }
 
     const input = document.createElement("input");
     input.type = type;
-    input.id = `geo-quoter-${name}`;
+      input.id = `frontier-quote-${name}`;
     input.name = name;
     input.required = required || false;
 
@@ -739,7 +739,7 @@
 
       // Submit to quote endpoint
       const response = await fetch(
-        `/apps/geo-quoter/quote?shop=${encodeURIComponent(shopDomain)}`,
+        `/apps/frontier-quote/quote?shop=${encodeURIComponent(shopDomain)}`,
         {
           method: "POST",
           headers: {
@@ -774,14 +774,14 @@
 
       // Close modal after 3 seconds
       setTimeout(() => {
-        const modal = document.getElementById("geo-quoter-modal");
+        const modal = document.getElementById("frontier-quote-modal");
         if (modal) {
           modal.classList.remove("active");
           document.body.style.overflow = "";
         }
       }, 3000);
     } catch (error) {
-      console.error("GeoQuoter: Error submitting quote:", error);
+      console.error("FrontierQuote: Error submitting quote:", error);
       errorMsg.textContent =
         error.message || "An error occurred. Please try again.";
       errorMsg.style.display = "block";
@@ -822,8 +822,8 @@
         buttons.forEach((button) => {
           // Skip if already processed or if it's a quote button we created
           if (
-            button.dataset.geoquoterProcessed ||
-            button.dataset.geoquoterButton === "true"
+            button.dataset.frontierquoteProcessed ||
+            button.dataset.frontierquoteButton === "true"
           ) {
             return;
           }
@@ -831,7 +831,7 @@
           // Create replacement button
           const quoteButton = button.cloneNode(true);
           quoteButton.textContent = "Get a Quote";
-          quoteButton.dataset.geoquoterButton = "true"; // Mark as quote button
+          quoteButton.dataset.frontierquoteButton = "true"; // Mark as quote button
           quoteButton.onclick = (e) => {
             e.preventDefault();
             showQuoteModal();
@@ -844,7 +844,7 @@
 
           // Hide original, show quote button
           button.style.display = "none";
-          button.dataset.geoquoterProcessed = "true";
+          button.dataset.frontierquoteProcessed = "true";
           button.parentNode.insertBefore(quoteButton, button);
         });
       });

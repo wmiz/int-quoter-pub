@@ -90,7 +90,7 @@ export default function TestQuoteFlow() {
 
     // Construct URL with country parameter
     const url = new URL(storefrontUrl);
-    url.searchParams.set("gq_country", selectedCountry);
+    url.searchParams.set("fq_country", selectedCountry);
 
     // Open in new window
     window.open(url.toString(), "_blank", "noopener,noreferrer");
@@ -129,7 +129,7 @@ export default function TestQuoteFlow() {
                     </Button>
                     <Text as="span" variant="bodyMd" tone="subdued">
                       {selectedCountry
-                        ? `Will open: ${storefrontUrl}?gq_country=${selectedCountry}`
+                        ? `Will open: ${storefrontUrl}?fq_country=${selectedCountry}`
                         : "Select a country to continue"}
                     </Text>
                   </InlineStack>

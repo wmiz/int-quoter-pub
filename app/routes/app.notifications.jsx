@@ -28,8 +28,8 @@ export default function Notifications() {
 
   const handleDownload = useCallback(() => {
     const link = document.createElement("a");
-    link.href = "/geo-quoter-notifications.flow";
-    link.download = "geo-quoter-notifications.flow";
+    link.href = "/frontier-quote-notifications.flow";
+    link.download = "frontier-quote-notifications.flow";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -45,7 +45,7 @@ export default function Notifications() {
               Shopify Flow Integration
             </Text>
             <Text as="p" variant="bodyMd" tone="subdued">
-              Download the GeoQuoter workflow file and import it into Shopify
+              Download the FrontierQuote workflow file and import it into Shopify
               Flow to receive email notifications when customers submit quote
               requests.
             </Text>

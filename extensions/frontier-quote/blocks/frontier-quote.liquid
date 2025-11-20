@@ -3,7 +3,7 @@
   In production, this should be set to your app's URL (e.g., https://your-app.ngrok.io or your production domain)
   For now, we'll try to construct it or use a relative path
 {% endcomment %}
-<link rel="stylesheet" href="{{ 'geo-quoter.css' | asset_url }}">
+<link rel="stylesheet" href="{{ 'frontier-quote.css' | asset_url }}">
 <style>
   {% if block.settings.disable_buy_it_now %}
     shopify-accelerated-checkout {
@@ -13,17 +13,17 @@
 </style>
 
 <script>
-  // Set app URL for geo-quoter.js
+  // Set app URL for frontier-quote.js
   // This should be your app's base URL (without trailing slash)
-  // Example: window.geoQuoterAppUrl = 'https://your-app-domain.com';
+  // Example: window.frontierQuoteAppUrl = 'https://your-app-domain.com';
   // If not set, the script will try to use a relative path
-  window.geoQuoterAppUrl = window.geoQuoterAppUrl || '';
+  window.frontierQuoteAppUrl = window.frontierQuoteAppUrl || '';
 </script>
-<script src="{{ 'geo-quoter.js' | asset_url }}" defer></script>
+<script src="{{ 'frontier-quote.js' | asset_url }}" defer></script>
 
 {% schema %}
 {
-  "name": "GeoQuoter",
+  "name": "FrontierQuote",
   "target": "head",
   "settings": [
     {
