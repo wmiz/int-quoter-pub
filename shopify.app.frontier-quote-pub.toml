@@ -1,7 +1,7 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "27c346eab6ca30969869df69f6c39a59"
-name = "FrontierQuote"
+name = "Frontier Quote"
 application_url = "https://frontierquote.com:8080"
 embedded = true
 

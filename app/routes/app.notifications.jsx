@@ -45,9 +45,9 @@ export default function Notifications() {
               Shopify Flow Integration
             </Text>
             <Text as="p" variant="bodyMd" tone="subdued">
-              Download the FrontierQuote workflow file and import it into Shopify
-              Flow to receive email notifications when customers submit quote
-              requests.
+              Download the Frontier Quote workflow file and import it into
+              Shopify Flow to receive email notifications when customers submit
+              quote requests.
             </Text>
             <Button variant="primary" size="large" onClick={handleDownload}>
               Download Flow File

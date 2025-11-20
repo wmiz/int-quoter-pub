@@ -1,5 +1,5 @@
 /**
- * FrontierQuote Theme App Extension
+ * Frontier Quote Theme App Extension
  * Replaces checkout buttons with "Get a Quote" flow for configured regions
  */
 
@@ -7,7 +7,7 @@
   "use strict";
 
   // Log asset load for diagnostics
-  console.info("FrontierQuote: asset loaded", {
+  console.info("Frontier Quote: asset loaded", {
     time: new Date().toISOString(),
     shop: window.Shopify?.shop || "",
   });
@@ -50,7 +50,7 @@
           : null);
 
       if (!shopDomain) {
-        console.warn("FrontierQuote: Could not determine shop domain");
+        console.warn("Frontier Quote: Could not determine shop domain");
         return false;
       }
 
@@ -72,7 +72,7 @@
 
       if (!response.ok) {
         console.error(
-          "FrontierQuote: API request failed",
+          "Frontier Quote: API request failed",
           response.status,
           response.statusText
         );
@@ -88,7 +88,7 @@
 
       return settings.shouldShowQuote;
     } catch (error) {
-      console.error("FrontierQuote: Error checking region:", error);
+      console.error("Frontier Quote: Error checking region:", error);
       return false; // Fail gracefully - show normal checkout
     }
   }
@@ -107,7 +107,7 @@
         return handle.toUpperCase();
       }
     } catch (error) {
-      console.error("FrontierQuote: Shopify country detection failed:", error);
+      console.error("Frontier Quote: Shopify country detection failed:", error);
     }
     return null;
   }
@@ -135,11 +135,14 @@
 
       if (country) {
         localStorage.setItem("frontierquote_country", country);
-        localStorage.setItem("frontierquote_country_time", Date.now().toString());
+        localStorage.setItem(
+          "frontierquote_country_time",
+          Date.now().toString()
+        );
         return country;
       }
     } catch (error) {
-      console.error("FrontierQuote: Country detection failed:", error);
+      console.error("Frontier Quote: Country detection failed:", error);
     }
     return null;
   }
@@ -153,7 +156,7 @@
       }
       return await response.json();
     } catch (error) {
-      console.error("FrontierQuote: Error fetching cart:", error);
+      console.error("Frontier Quote: Error fetching cart:", error);
       return null;
     }
   }
@@ -645,7 +648,7 @@
 
     const input = document.createElement("input");
     input.type = type;
-      input.id = `frontier-quote-${name}`;
+    input.id = `frontier-quote-${name}`;
     input.name = name;
     input.required = required || false;
 

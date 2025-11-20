@@ -644,7 +644,7 @@ export default function Index() {
             <Card>
               <BlockStack gap="400">
                 <Text as="h2" variant="headingMd">
-                  Set up FrontierQuote
+                  Set up Frontier Quote
                 </Text>
                 <Text as="p" variant="bodyMd">
                   Follow these steps to configure the app based on your business
@@ -854,7 +854,7 @@ export default function Index() {
               {!setupComplete && (
                 <Banner
                   status="warning"
-                  title="Complete setup to activate FrontierQuote"
+                  title="Complete setup to activate Frontier Quote"
                   action={{
                     content: activeThemeId
                       ? "Open theme customizer"
@@ -868,7 +868,7 @@ export default function Index() {
                   <BlockStack gap="200">
                     <Text as="p" variant="bodyMd">
                       {!appEmbedActive
-                        ? "Add and enable the app embed block in your theme to activate FrontierQuote."
+                        ? "Add and enable the app embed block in your theme to activate Frontier Quote."
                         : ""}
                     </Text>
                   </BlockStack>
@@ -885,7 +885,8 @@ export default function Index() {
                   }}
                 >
                   <Text as="p" variant="bodyMd">
-                    FrontierQuote is active and ready to receive quote requests.
+                    Frontier Quote is active and ready to receive quote
+                    requests.
                   </Text>
                 </Banner>
               )}
