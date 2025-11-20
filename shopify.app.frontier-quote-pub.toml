@@ -2,7 +2,7 @@
 
 client_id = "27c346eab6ca30969869df69f6c39a59"
 name = "Frontier Quote"
-application_url = "https://frontierquote.com:8080"
+application_url = "https://app.frontierquote.com:8080"
 embedded = true
 
 [webhooks]
@@ -13,7 +13,7 @@ api_version = "2026-01"
 scopes = "read_themes, write_draft_orders, read_draft_orders, write_app_proxy, read_products, read_orders, read_customers"
 
 [auth]
-redirect_urls = [ "https://frontierquote.com:8080/api/auth" ]
+redirect_urls = [ "https://app.frontierquote.com:8080/api/auth" ]
 
 [app_proxy]
 url = "/frontier-quote"
